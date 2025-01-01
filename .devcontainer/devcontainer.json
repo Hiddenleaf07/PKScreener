@@ -1,0 +1,12 @@
+{
+  "name": "Python 3.11 Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "python.pythonPath": "/usr/local/bin/python3.11"
+  },
+  "extensions": [
+    "ms-python.python"
+  ]
+}
