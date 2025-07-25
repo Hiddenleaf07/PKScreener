@@ -23,17 +23,24 @@
     SOFTWARE.
 
 """
+# =============================
+# AssetsManager.py
+# Purpose: Manage asset data, caching, downloads, and Excel export for stock screening
+# =============================
+
 import glob
 import os
 import pickle
 import shutil
 import tempfile
+import datetime
 import pandas as pd
 import numpy as np
 from halo import Halo
 from alive_progress import alive_bar
 from yfinance import shared
 
+# --- PKDevTools and pkscreener imports for logging, utilities, and color output ---
 from PKDevTools.classes.log import default_logger
 from PKDevTools.classes import Archiver
 from PKDevTools.classes.PKDateUtilities import PKDateUtilities
@@ -42,7 +49,6 @@ from PKDevTools.classes.ColorText import colorText
 from PKDevTools.classes.MarketHours import MarketHours
 from PKDevTools.classes.Committer import Committer
 from PKDevTools.classes.SuppressOutput import SuppressOutput
-from PKDevTools.classes.PKBackupRestore import start_backup
 
 import pkscreener.classes.Fetcher as Fetcher
 from pkscreener.classes.PKTask import PKTask
@@ -50,45 +56,56 @@ from pkscreener.classes import Utility, ImageUtility
 import pkscreener.classes.ConfigManager as ConfigManager
 from pkscreener.classes.PKScheduler import PKScheduler
 
+# =============================
+# PKAssetsManager: Main class for asset management
+# =============================
 class PKAssetsManager:
+    # --- Initialize fetcher and configManager as class attributes ---
     fetcher = Fetcher.screenerStockDataFetcher()
     configManager = ConfigManager.tools()
     configManager.getConfig(ConfigManager.parser)
 
-    def make_hyperlink(value):
-        url = "https://in.tradingview.com/chart?symbol=NSE:{}"
-        return '=HYPERLINK("%s", "%s")' % (url.format(ImageUtility.PKImageTools.stockNameFromDecoratedName(value)), value)
+    # =============================
+    # Helper: Create Excel hyperlink for stock names
+    # =============================
+    # def make_hyperlink(value):
+    #     url = "https://in.tradingview.com/chart?symbol=NSE:{}"
+    #     return '=HYPERLINK("%s", "%s")' % (url.format(ImageUtility.PKImageTools.stockNameFromDecoratedName(value)), value)
+    # (Commented out as per user request)
 
-    # Save screened results to excel
+    # =============================
+    # Save screened results to Excel (with fallback to Desktop/temp)
+    # =============================
     def promptSaveResults(sheetName,df_save, defaultAnswer=None,pastDate=None,screenResults=None):
         """
         Tries to save the dataframe output into an excel file.
-
         It will first try to save to the current-working-directory/results/
-
         If it fails to save, it will then try to save to Desktop and then eventually into
-        a temporary directory.
+a temporary directory.
         """
         data = df_save.copy()
         try:
+            # --- Clean up data: fill NaN, replace inf, remove color styles ---
             data = data.fillna(0)
             data = data.replace([np.inf, -np.inf], 0)
             data = ImageUtility.PKImageTools.removeAllColorStyles(data)
-        except KeyboardInterrupt: # pragma: no cover
+        except KeyboardInterrupt:
             raise KeyboardInterrupt
-        except Exception as e: # pragma: no cover
+        except Exception as e:
             default_logger().debug(e,exc_info=True)
             pass
         try:
+            # --- Add hyperlinks to stock column ---
             data.reset_index(inplace=True)
             with pd.option_context('mode.chained_assignment', None):
                 data["Stock"] = data['Stock'].apply(PKAssetsManager.make_hyperlink)
             data.set_index("Stock", inplace=True)
-        except: # pragma: no cover
+        except: 
             pass
         df = data
         isSaved = False
         try:
+            # --- Prompt user to review legends and/or save results ---
             if defaultAnswer is None:
                 responseLegends = str(
                         OutputControls().takeUserInput(
@@ -113,6 +130,7 @@ class PKAssetsManager:
             default_logger().debug(e, exc_info=True)
             response = "Y"
         if response is not None and response.upper() != "N":
+            # --- Build filename with date/time and sheet name ---
             pastDateString = f"{pastDate}_to_" if pastDate is not None else ""
             filename = (
                 f"PKS_{sheetName.strip()}_"
@@ -121,16 +139,14 @@ class PKAssetsManager:
                 + ".xlsx"
             )
             desktop = os.path.expanduser("~/Desktop")
-            # # the above is valid on Windows (after 7) but if you want it in os normalized form:
+           
             desktop = os.path.normpath(os.path.expanduser("~/Desktop"))
             filePath = ""
             try:
-                filePath = os.path.join(Archiver.get_user_reports_dir(), filename)
-                # Create a Pandas Excel writer using XlsxWriter as the engine.
-                writer = pd.ExcelWriter(filePath, engine='xlsxwriter') # openpyxl throws an error exporting % sign.
-                # Convert the dataframe to an XlsxWriter Excel object.
-                df.to_excel(writer, sheet_name=sheetName[-31:]) # sheetname cannot be beyond 31 character
-                # Close the Pandas Excel writer and output the Excel file.
+                # --- Try saving to user reports directory ---
+                filePath = os.path.join(Archiver.get_user_reports_dir(), filename)                
+                writer = pd.ExcelWriter(filePath, engine='xlsxwriter') 
+                df.to_excel(writer, sheet_name=sheetName[-31:]) 
                 writer.close()
                 df.to_csv(filePath.replace(".xlsx",".csv"))
                 isSaved = True
@@ -147,12 +163,10 @@ class PKAssetsManager:
                     + colorText.END
                 )
                 try:
+                    # --- Fallback: Try saving to Desktop ---
                     filePath = os.path.join(desktop, filename)
-                    # Create a Pandas Excel writer using XlsxWriter as the engine.
-                    writer = pd.ExcelWriter(filePath, engine='xlsxwriter') # openpyxl throws an error exporting % sign.
-                    # Convert the dataframe to an XlsxWriter Excel object.
+                    writer = pd.ExcelWriter(filePath, engine='xlsxwriter') 
                     df.to_excel(writer, sheet_name=sheetName)
-                    # Close the Pandas Excel writer and output the Excel file.
                     writer.close()
                     isSaved = True
                 except KeyboardInterrupt: # pragma: no cover
@@ -168,12 +182,10 @@ class PKAssetsManager:
                         + colorText.END
                     )
                     try:
+                        # --- Fallback: Try saving to temp directory ---
                         filePath = os.path.join(tempfile.gettempdir(), filename)
-                        # Create a Pandas Excel writer using XlsxWriter as the engine.
                         writer = pd.ExcelWriter(filePath, engine='xlsxwriter') # openpyxl throws an error exporting % sign.
-                        # Convert the dataframe to an XlsxWriter Excel object.
                         df.to_excel(writer, sheet_name=sheetName)
-                        # Close the Pandas Excel writer and output the Excel file.
                         writer.close()
                         isSaved = True
                     except Exception as ex:  # pragma: no cover
@@ -186,20 +198,22 @@ class PKAssetsManager:
             return filePath
         return None
 
+    # =============================
+    # Check if after-market stock data exists in cache
+    # =============================
     def afterMarketStockDataExists(intraday=False, forceLoad=False):
         curr = PKDateUtilities.currentDateTime()
         openTime = curr.replace(hour=MarketHours().openHour, minute=MarketHours().openMinute)
         cache_date = PKDateUtilities.previousTradingDate(PKDateUtilities.nextTradingDate(curr)) #curr  # for monday to friday
         weekday = curr.weekday()
         isTrading = PKDateUtilities.isTradingTime()
+        # Default: use previous trading date logic
         if (forceLoad and isTrading) or isTrading:
-            #curr = PKDateUtilities.tradingDate()
-            cache_date = PKDateUtilities.previousTradingDate(curr) #curr - datetime.timedelta(1)
-        # for monday to friday before market open or between market open to market close, we're backtesting
+            cache_date = PKDateUtilities.previousTradingDate(curr)
         if curr < openTime:
-            cache_date = PKDateUtilities.previousTradingDate(curr) # curr - datetime.timedelta(1)
+            cache_date = PKDateUtilities.previousTradingDate(curr)
         if weekday == 0 and curr < openTime:  # for monday before market open
-            cache_date = PKDateUtilities.previousTradingDate(curr) #curr - datetime.timedelta(3)
+            cache_date = PKDateUtilities.previousTradingDate(curr)
         if weekday == 5 or weekday == 6:  # for saturday and sunday
             cache_date = PKDateUtilities.previousTradingDate(curr) # curr - datetime.timedelta(days=weekday - 4)
         cache_date = cache_date.strftime("%d%m%y")
@@ -212,6 +226,9 @@ class PKAssetsManager:
                 break
         return exists, cache_file
 
+    # =============================
+    # Save stock data to pickle file (with downloadOnly and forceSave options)
+    # =============================
     @Halo(text='', spinner='dots')
     def saveStockData(stockDict, configManager, loadCount, intraday=False, downloadOnly=False, forceSave=False):
         exists, fileName = PKAssetsManager.afterMarketStockDataExists(
@@ -229,16 +246,16 @@ class PKAssetsManager:
         cache_file = os.path.join(outputFolder, fileName)
         if not os.path.exists(cache_file) or forceSave or (loadCount >= 0 and len(stockDict) > (loadCount + 1)):
             try:
+                # --- Save stockDict to pickle file ---
                 with open(cache_file, "wb") as f:
                     pickle.dump(stockDict.copy(), f, protocol=pickle.HIGHEST_PROTOCOL)
                     OutputControls().printOutput(colorText.GREEN + "=> Done." + colorText.END)
+                OutputControls().printOutput(colorText.WARN + f"[DEBUG] Saved cache file: {cache_file}" + colorText.END)
+                if os.path.exists(cache_file):
+                    mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_file))
+                    OutputControls().printOutput(colorText.WARN + f"[DEBUG] Cache file mtime after save: {mtime.strftime('%Y-%m-%d %H:%M:%S')}" + colorText.END)
                 if downloadOnly:
-                    # if "RUNNER" not in os.environ.keys():
-                        # copyFilePath = os.path.join(Archiver.get_user_data_dir(), f"copy_{fileName}")
-                        # cacheFileSize = os.stat(cache_file).st_size if os.path.exists(cache_file) else 0
-                        # if os.path.exists(cache_file) and cacheFileSize >= 1024*1024*40:
-                        #     shutil.copy(cache_file,copyFilePath) # copy is the saved source of truth
-
+                    # --- Print all relevant files for downloadOnly mode ---
                     rootDirs = [Archiver.get_user_data_dir(),Archiver.get_user_indices_dir(),outputFolder]
                     patterns = ["*.csv","*.pkl"]
                     for dir in rootDirs:
@@ -267,6 +284,9 @@ class PKAssetsManager:
                 OutputControls().printOutput(colorText.GREEN + f"=> {cache_file}" + colorText.END)
         return cache_file
 
+    # =============================
+    # Check for yfinance rate limit errors
+    # =============================
     def had_rate_limit_errors():
         """Checks if any stored errors are YFRateLimitError."""
         err = ",".join(list(shared._ERRORS.values()))
@@ -279,48 +299,93 @@ class PKAssetsManager:
             )
         return hitRateLimit
     
+    # =============================
+    # Download latest data for a batch of stocks (with retries)
+    # =============================
     @Halo(text='  [+] Downloading fresh data from Data Providers...', spinner='dots')
-    def downloadLatestData(stockDict,configManager,stockCodes=[],exchangeSuffix=".NS",downloadOnly=False,numStocksPerIteration=0):
-        shared._ERRORS.clear()  # Clear previous errors
-        # if numStocksPerIteration == 0:
-        # maxParallelProcesses = 17
-        numStocksPerIteration = 100 #(int(len(stockCodes)/int(len(stockCodes)/maxParallelProcesses)) if len(stockCodes) >= maxParallelProcesses else len(stockCodes)) + 1
-        queueCounter = 0
-        iterations = int(len(stockCodes)/numStocksPerIteration) + 1
-        tasksList = []
-        while queueCounter < iterations:
-            stocks = []
-            if queueCounter < iterations:
-                stocks = stockCodes[numStocksPerIteration* queueCounter : numStocksPerIteration* (queueCounter + 1)]
-            else:
-                stocks = ["DUMMYStock"]#stockCodes[numStocksPerIteration* queueCounter :]
-            fn_args = (stocks, configManager.period, configManager.duration,exchangeSuffix)
-            task = PKTask(f"DataDownload-{queueCounter}",long_running_fn=PKAssetsManager.fetcher.fetchStockDataWithArgs,long_running_fn_args=fn_args)
-            task.userData = stocks
-            if len(stocks) > 0:
-                tasksList.append(task)
-            queueCounter += 1
+    def downloadLatestData(stockDict, configManager, stockCodes=[], exchangeSuffix=".NS", downloadOnly=False, numStocksPerIteration=0):
+        """
+        Download latest data for a batch of stocks (with retries) using yfinance only.
+        """
+        import time
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import yfinance as yf
+        from yfinance import shared
         
-        processedStocks = []
-        if len(tasksList) > 0:
-            # Suppress any multiprocessing errors/warnings
-            with SuppressOutput(suppress_stderr=True, suppress_stdout=True):
-                PKScheduler.scheduleTasks(tasksList=tasksList, 
-                                        label=f"Downloading latest data [{configManager.period},{configManager.duration}] (Total={len(stockCodes)} records in {len(tasksList)} batches){'Be Patient!' if len(stockCodes)> 2000 else ''}",
-                                        timeout=(5+2.5*configManager.longTimeout*(4 if downloadOnly else 1)), # 5 sec additional time for multiprocessing setup
-                                        minAcceptableCompletionPercentage=(100 if downloadOnly else 100),
-                                        showProgressBars=configManager.logsEnabled)
-            for task in tasksList:
-                if task.result is not None and isinstance(task.result,pd.DataFrame) and not task.result.empty:
-                    for stock in task.userData:
-                        taskResult = task.result.get(f"{stock}{exchangeSuffix}")
-                        if taskResult is not None and isinstance(taskResult,pd.DataFrame) and not taskResult.empty:
-                            stockDict[stock] = taskResult.to_dict("split")
-                            processedStocks.append(stock)
-        leftOutStocks = list(set(stockCodes)-set(processedStocks))
-        default_logger().debug(f"Attempted fresh download of {len(stockCodes)} stocks and downloaded {len(processedStocks)} stocks. {len(leftOutStocks)} stocks remaining.")
-        return stockDict, leftOutStocks
+        def download_single_stock(stock_code, period, interval, exchange_suffix):
+            ticker_symbol = f"{stock_code}{exchange_suffix}"
+            try:
+                if ticker_symbol in shared._ERRORS:
+                    del shared._ERRORS[ticker_symbol]
+                ticker = yf.Ticker(ticker_symbol)
+                data = ticker.history(
+                    period=period,
+                    interval=interval,
+                    auto_adjust=True,
+                    timeout=5,
+                    rounding=True
+                )
+                if data.empty:
+                    return stock_code, None
+                data_dict = data.to_dict("split")
+                return stock_code, data_dict
+            except Exception as e:
+                default_logger().debug(f"Error downloading {stock_code}: {str(e)}")
+                return stock_code, None
 
+        batch_size = 200  # Always use 100 stocks per batch
+        max_workers = 5
+        max_retries = 1
+        all_stockDict = stockDict.copy() if stockDict else {}
+        leftOutStocks = stockCodes.copy()
+        period = configManager.period
+        interval = configManager.duration
+
+        for attempt in range(max_retries + 1):
+            if not leftOutStocks:
+                break
+            current_batch_size = batch_size
+            failed = []
+            print(f"[Batch Download] Attempt {attempt+1}/{max_retries+1}: {len(leftOutStocks)} stocks, batch size {current_batch_size}")
+            for i in range(0, len(leftOutStocks), current_batch_size):
+                batch = leftOutStocks[i:i+current_batch_size]
+                batch_success = 0
+                batch_failed = 0
+                batch_start_time = time.time()
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_to_stock = {
+                        executor.submit(download_single_stock, stock_code, period, interval, exchangeSuffix): stock_code
+                        for stock_code in batch
+                    }
+                    for future in as_completed(future_to_stock, timeout=120):
+                        stock_code = future_to_stock[future]
+                        try:
+                            result_stock, result_data = future.result()
+                            if result_data is not None:
+                                all_stockDict[result_stock] = result_data
+                                batch_success += 1
+                            else:
+                                failed.append(result_stock)
+                                batch_failed += 1
+                        except Exception as e:
+                            default_logger().debug(f"Future failed for {stock_code}: {str(e)}")
+                            failed.append(stock_code)
+                            batch_failed += 1
+                batch_end_time = time.time()
+                OutputControls().printOutput(
+                    colorText.GREEN + f"Batch: Downloaded {batch_success}, Failed {batch_failed} (Time: {batch_end_time - batch_start_time:.2f}s)" + colorText.END
+                )
+                time.sleep(1.5 if current_batch_size > 10 else 1.0)
+            leftOutStocks = failed
+            if leftOutStocks and attempt < max_retries:
+                OutputControls().printOutput(colorText.WARN + f"Retrying {len(leftOutStocks)} failed stocks..." + colorText.END)
+                time.sleep(1.0)
+        OutputControls().printOutput(colorText.GREEN + f"[Batch Download] Finished: {len(all_stockDict)} downloaded, {len(leftOutStocks)} failed." + colorText.END)
+        return all_stockDict, leftOutStocks
+
+    # =============================
+    # Load stock data (from cache, server, or download as needed)
+    # =============================
     def loadStockData(
         stockDict,
         configManager,
@@ -347,29 +412,25 @@ class PKAssetsManager:
         # Check if NSEI data is requested
         if configManager.baseIndex not in stockCodes:
             stockCodes.insert(0,configManager.baseIndex)
-        # stockCodes is not None mandates that we start our work based on the downloaded data from yesterday
+        
         if (stockCodes is not None and len(stockCodes) > 0) and (isTrading or downloadOnly):
             recentDownloadFromOriginAttempted = True
             stockDict, leftOutStocks = PKAssetsManager.downloadLatestData(stockDict,configManager,stockCodes,exchangeSuffix=exchangeSuffix,downloadOnly=downloadOnly,numStocksPerIteration=len(stockCodes) if stockCodes is not None else 0)
             if len(leftOutStocks) > int(len(stockCodes)*0.05) and not PKAssetsManager.had_rate_limit_errors():
-                # During live market hours, we may not really get additional data if we didn't
-                # get it the first time
-                # More than 5 % of stocks are still remaining
+                
                 stockDict, _ = PKAssetsManager.downloadLatestData(stockDict,configManager,leftOutStocks,exchangeSuffix=exchangeSuffix,downloadOnly=downloadOnly,numStocksPerIteration=len(leftOutStocks) if leftOutStocks is not None else 0)
             # return stockDict
         if downloadOnly or isTrading:
             # We don't want to download from local stale pkl file or stale file at server
-            start_backup()
             return stockDict
         
         default_logger().debug(
             f"Stock data cache file:{cache_file} exists ->{str(exists)}"
         )
         stockDataLoaded = False
-        # copyFilePath = os.path.join(Archiver.get_user_data_dir(), f"copy_{cache_file}")
+        
         srcFilePath = os.path.join(Archiver.get_user_data_dir(), cache_file)
-        # if os.path.exists(copyFilePath):
-        #     shutil.copy(copyFilePath,srcFilePath) # copy is the saved source of truth
+      
         if os.path.exists(srcFilePath) and not forceRedownload:
             stockDict, stockDataLoaded = PKAssetsManager.loadDataFromLocalPickle(stockDict,configManager, downloadOnly, defaultAnswer, exchangeSuffix, cache_file, isTrading)
         if (
@@ -396,15 +457,18 @@ class PKAssetsManager:
             stockDict, _ = PKAssetsManager.downloadLatestData(stockDict,configManager,leftOutStocks,exchangeSuffix=exchangeSuffix,downloadOnly=downloadOnly,numStocksPerIteration=len(leftOutStocks) if leftOutStocks is not None else 0)
         if stockDataLoaded and downloadOnly:
             PKAssetsManager.saveStockData(stockDict,configManager,initialLoadCount,isIntraday,downloadOnly, forceSave=stockDataLoaded)
-        start_backup()
         return stockDict
 
+    # =============================
+    # Load data from local pickle cache
+    # =============================
     @Halo(text='  [+] Loading data from local cache...', spinner='dots')
     def loadDataFromLocalPickle(stockDict, configManager, downloadOnly, defaultAnswer, exchangeSuffix, cache_file, isTrading):
         stockDataLoaded = False
         srcFilePath = os.path.join(Archiver.get_user_data_dir(), cache_file)
 
         try:
+            # --- Attempt to load pickle file ---
             with open(srcFilePath, "rb") as f:
                 stockData = pickle.load(f)
             if not stockData:
@@ -448,6 +512,9 @@ class PKAssetsManager:
             raise
         return stockDict, stockDataLoaded
 
+    # =============================
+    # Download saved defaults from server (for cache file)
+    # =============================
     @Halo(text='', spinner='dots')
     def downloadSavedDefaultsFromServer(cache_file):
         fileDownloaded = False
@@ -463,7 +530,7 @@ class PKAssetsManager:
             MB = KB * 1024
             chunksize = MB if serverBytes >= MB else (KB if serverBytes >= KB else 1)
             filesize = int( serverBytes / chunksize)
-            if filesize > 40: #Something definitely went wrong. It should be upward of 40bytes
+            if filesize > 40: 
                 try:
                     with open(os.path.join(Archiver.get_user_data_dir(), cache_file),"w+",) as f: # .split(os.sep)[-1]
                         f.write(resp.text)
@@ -472,6 +539,9 @@ class PKAssetsManager:
                     pass
         return fileDownloaded
 
+    # =============================
+    # Download and load saved data from server (with progress bar)
+    # =============================
     def downloadSavedDataFromServer(stockDict, configManager, downloadOnly, defaultAnswer, retrial, forceLoad, stockCodes, exchangeSuffix, isIntraday, forceRedownload, cache_file, isTrading):
         stockDataLoaded = False
         resp = Utility.tools.tryFetchFromServer(cache_file)
@@ -486,7 +556,7 @@ class PKAssetsManager:
             MB = KB * 1024
             chunksize = MB if serverBytes >= MB else (KB if serverBytes >= KB else 1)
             filesize = int( serverBytes / chunksize)
-            if filesize > 40 and chunksize == MB: # Saved data can't be in KBs. Something definitely went wrong. It should be upward of 40MB
+            if filesize > 40 and chunksize == MB: 
                 bar, spinner = Utility.tools.getProgressbarStyle()
                 try:
                     f = open(
@@ -512,8 +582,7 @@ class PKAssetsManager:
                     if len(stockData) > 0:
                         multiIndex = stockData.keys()
                         if isinstance(multiIndex, pd.MultiIndex):
-                                # If we requested for multiple stocks from yfinance
-                                # we'd have received a multiindex dataframe
+                                
                             listStockCodes = multiIndex.get_level_values(0)
                             listStockCodes = sorted(list(filter(None,list(set(listStockCodes)))))
                             if len(listStockCodes) > 0 and len(exchangeSuffix) > 0 and exchangeSuffix in listStockCodes[0]:
@@ -525,14 +594,12 @@ class PKAssetsManager:
                         for stock in listStockCodes:
                             df_or_dict = stockData.get(stock)
                             df_or_dict = df_or_dict.to_dict("split") if isinstance(df_or_dict,pd.DataFrame) else df_or_dict
-                                # This will keep all the latest security data we downloaded
-                                # just now and also copy the additional data like, MF/FII,FairValue
-                                # etc. data, from yesterday's saved data.
+                                
                             try:
                                 existingPreLoadedData = stockDict.get(stock)
                                 if existingPreLoadedData is not None:
                                     if isTrading:
-                                            # Only copy the MF/FII/FairValue data and leave the stock prices as is.
+                                           
                                         cols = ["MF", "FII","MF_Date","FII_Date","FairValue"]
                                         for col in cols:
                                             existingPreLoadedData[col] = df_or_dict.get(col)
@@ -542,18 +609,11 @@ class PKAssetsManager:
                                 else:
                                     if not isTrading:
                                         stockDict[stock] = df_or_dict
-                            except: # pragma: no cover
-                                    # Probably, the "stock" got removed from the latest download
-                                    # and so, was not found in stockDict
+                            except: 
+                                    
                                 continue
                         stockDataLoaded = True
-                        # copyFilePath = os.path.join(Archiver.get_user_data_dir(), f"copy_{cache_file}")
-                        # srcFilePath = os.path.join(Archiver.get_user_data_dir(), cache_file)
-                        # if os.path.exists(copyFilePath) and os.path.exists(srcFilePath):
-                        #     shutil.copy(copyFilePath,srcFilePath) # copy is the saved source of truth
-                        # if not os.path.exists(copyFilePath) and os.path.exists(srcFilePath): # Let's make a copy of the original one
-                        #     shutil.copy(srcFilePath,copyFilePath)
-                        # Remove the progress bar now!
+                        
                         OutputControls().moveCursorUpLines(1)
                 except KeyboardInterrupt: # pragma: no cover
                     raise KeyboardInterrupt
@@ -582,7 +642,9 @@ class PKAssetsManager:
                 
         return stockDict,stockDataLoaded
 
-    # Save screened results to excel
+    # =============================
+    # Prompt user if file exists (Y/N)
+    # =============================
     def promptFileExists(cache_file="stock_data_*.pkl", defaultAnswer=None):
         try:
             if defaultAnswer is None:
@@ -599,3 +661,6 @@ class PKAssetsManager:
             default_logger().debug(e, exc_info=True)
             pass
         return "Y" if response != "N" else "N"
+
+
+
