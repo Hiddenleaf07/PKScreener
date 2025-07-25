@@ -333,8 +333,8 @@ a temporary directory.
                 default_logger().debug(f"Error downloading {stock_code}: {str(e)}")
                 return stock_code, None
 
-        batch_size = 200  # Always use 100 stocks per batch
-        max_workers = 5
+        batch_size = 210  # Always use 100 stocks per batch
+        max_workers = 6
         max_retries = 1
         all_stockDict = stockDict.copy() if stockDict else {}
         leftOutStocks = stockCodes.copy()
