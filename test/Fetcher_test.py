@@ -264,12 +264,13 @@ def test_fetchStockData_positive(configManager, tools_instance):
             interval="1m",
             proxy=None,
             progress=False,
-            timeout=configManager.generalTimeout/4,
+            timeout=4,
             rounding=True,
             group_by='ticker', 
             start=None, 
             end=None,
-            auto_adjust=True
+            auto_adjust=True,
+            threads=True
         )
 
 
