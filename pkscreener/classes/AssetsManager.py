@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 """
     The MIT License (MIT)
-
     Copyright (c) 2023 pkjmesra
-
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,17 +18,23 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 """
+#!/usr/bin/env python
+# =============================
+# AssetsManager.py
+# Purpose: Manage asset data, caching, downloads, and Excel export for stock screening
+# =============================
 import glob
 import os
 import pickle
 import shutil
 import tempfile
+import datetime
 import pandas as pd
 import numpy as np
 from halo import Halo
 from alive_progress import alive_bar
 from yfinance import shared
-
+# --- PKDevTools and pkscreener imports for logging, utilities, and color output ---
 from PKDevTools.classes.log import default_logger
 from PKDevTools.classes import Archiver
 from PKDevTools.classes.PKDateUtilities import PKDateUtilities
@@ -42,23 +44,38 @@ from PKDevTools.classes.MarketHours import MarketHours
 from PKDevTools.classes.Committer import Committer
 from PKDevTools.classes.SuppressOutput import SuppressOutput
 from PKDevTools.classes.PKBackupRestore import start_backup
-
 import pkscreener.classes.Fetcher as Fetcher
 from pkscreener.classes.PKTask import PKTask
 from pkscreener.classes import Utility, ImageUtility
 import pkscreener.classes.ConfigManager as ConfigManager
 from pkscreener.classes.PKScheduler import PKScheduler
 
+
+# =============================
+# PKAssetsManager: Main class for asset management
+# =============================
 class PKAssetsManager:
+    # --- Initialize fetcher and configManager as class attributes ---
     fetcher = Fetcher.screenerStockDataFetcher()
     configManager = ConfigManager.tools()
     configManager.getConfig(ConfigManager.parser)
 
+    # =============================
+    # Helper: Create Excel hyperlink for stock names
+    # =============================
     def make_hyperlink(value):
         url = "https://in.tradingview.com/chart?symbol=NSE:{}"
         return '=HYPERLINK("%s", "%s")' % (url.format(ImageUtility.PKImageTools.stockNameFromDecoratedName(value)), value)
 
+    # =============================
+    # Save screened results to Excel (with fallback to Desktop/temp)
+    # =============================
     def promptSaveResults(sheetName, df_save, defaultAnswer=None, pastDate=None, screenResults=None):
+        """
+        Tries to save the dataframe output into an excel file.
+        It will first try to save to the current-working-directory/results/
+        If it fails to save, it will then try to save to Desktop and then eventually into a temporary directory.
+        """
         data = df_save.copy()
         try:
             data = data.fillna(0)
@@ -69,7 +86,6 @@ class PKAssetsManager:
         except Exception as e:
             default_logger().debug(e, exc_info=True)
             pass
-        
         try:
             data.reset_index(inplace=True)
             with pd.option_context('mode.chained_assignment', None):
@@ -77,23 +93,28 @@ class PKAssetsManager:
             data.set_index("Stock", inplace=True)
         except:
             pass
-            
         df = data
         isSaved = False
         try:
             if defaultAnswer is None:
                 responseLegends = str(
                     OutputControls().takeUserInput(
-                        colorText.WARN + f"[>] Do you want to review legends used in the report above? [Y/N](Default:{colorText.END}{colorText.FAIL}N{colorText.END}): ",
+                        colorText.WARN
+                        + f"[>] Do you want to review legends used in the report above? [Y/N](Default:{colorText.END}{colorText.FAIL}N{colorText.END}): ",
                         defaultInput="N"
                     ) or "N"
                 ).upper()
                 if "Y" in responseLegends:
-                    OutputControls().printOutput(ImageUtility.PKImageTools.getLegendHelpText(table=None).replace("***:",colorText.END+":").replace("***"," " +colorText.FAIL))
+                    OutputControls().printOutput(
+                        ImageUtility.PKImageTools.getLegendHelpText(table=None)
+                        .replace("***:", colorText.END + ":")
+                        .replace("***", " " + colorText.FAIL)
+                    )
                 if not PKAssetsManager.configManager.alwaysExportToExcel:
                     response = str(
                         input(
-                            colorText.WARN + f"[>] Do you want to save the results in excel file? [Y/N](Default:{colorText.END}{colorText.FAIL}N{colorText.END}): "
+                            colorText.WARN
+                            + f"[>] Do you want to save the results in excel file? [Y/N](Default:{colorText.END}{colorText.FAIL}N{colorText.END}): "
                         ) or "N"
                     ).upper()
                 else:
@@ -103,16 +124,17 @@ class PKAssetsManager:
         except ValueError as e:
             default_logger().debug(e, exc_info=True)
             response = "Y"
-            
+
         if response is not None and response.upper() != "N":
             pastDateString = f"{pastDate}_to_" if pastDate is not None else ""
             filename = (
-                f"PKS_{sheetName.strip()}_" + pastDateString +
-                PKDateUtilities.currentDateTime().strftime("%d-%m-%y_%H.%M.%S") + ".xlsx"
+                f"PKS_{sheetName.strip()}_"
+                + pastDateString
+                + PKDateUtilities.currentDateTime().strftime("%d-%m-%y_%H.%M.%S")
+                + ".xlsx"
             )
             desktop = os.path.normpath(os.path.expanduser("~/Desktop"))
             filePath = ""
-            
             try:
                 filePath = os.path.join(Archiver.get_user_reports_dir(), filename)
                 writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
@@ -125,7 +147,9 @@ class PKAssetsManager:
             except Exception as e:
                 default_logger().debug(e, exc_info=True)
                 OutputControls().printOutput(
-                    colorText.FAIL + f"  [+] Error saving file at {filePath}" + colorText.END
+                    colorText.FAIL
+                    + (f"  [+] Error saving file at %s" % filePath)
+                    + colorText.END
                 )
                 try:
                     filePath = os.path.join(desktop, filename)
@@ -138,7 +162,9 @@ class PKAssetsManager:
                 except Exception as ex:
                     default_logger().debug(ex, exc_info=True)
                     OutputControls().printOutput(
-                        colorText.FAIL + f"  [+] Error saving file at {filePath}" + colorText.END
+                        colorText.FAIL
+                        + (f"  [+] Error saving file at %s" % filePath)
+                        + colorText.END
                     )
                     try:
                         filePath = os.path.join(tempfile.gettempdir(), filename)
@@ -146,24 +172,26 @@ class PKAssetsManager:
                         df.to_excel(writer, sheet_name=sheetName)
                         writer.close()
                         isSaved = True
-                    except Exception as ex:
+                    except Exception:
                         pass
-            
             OutputControls().printOutput(
-                (colorText.GREEN if isSaved else colorText.FAIL) +
-                (f"  [+] Results saved to {filePath}" if isSaved else "  [+] Failed saving results into Excel file!") +
-                colorText.END
+                (colorText.GREEN if isSaved else colorText.FAIL)
+                + (("  [+] Results saved to %s" % filePath) if isSaved else "  [+] Failed saving results into Excel file!")
+                + colorText.END
             )
             return filePath
         return None
 
+    # =============================
+    # Check if after-market stock data exists in cache
+    # =============================
     def afterMarketStockDataExists(intraday=False, forceLoad=False):
         curr = PKDateUtilities.currentDateTime()
         openTime = curr.replace(hour=MarketHours().openHour, minute=MarketHours().openMinute)
         cache_date = PKDateUtilities.previousTradingDate(PKDateUtilities.nextTradingDate(curr))
         weekday = curr.weekday()
         isTrading = PKDateUtilities.isTradingTime()
-        
+
         if (forceLoad and isTrading) or isTrading:
             cache_date = PKDateUtilities.previousTradingDate(curr)
         if curr < openTime:
@@ -172,26 +200,26 @@ class PKAssetsManager:
             cache_date = PKDateUtilities.previousTradingDate(curr)
         if weekday == 5 or weekday == 6:
             cache_date = PKDateUtilities.previousTradingDate(curr)
-            
+
         cache_date = cache_date.strftime("%d%m%y")
         pattern = f"{'intraday_' if intraday else ''}stock_data_"
         cache_file = pattern + str(cache_date) + ".pkl"
         exists = False
-        
         for f in glob.glob(f"{pattern}*.pkl", root_dir=Archiver.get_user_data_dir()):
             if f.endswith(cache_file):
                 exists = True
                 break
-                
         return exists, cache_file
 
+    # =============================
+    # Save stock data to pickle file (with downloadOnly and forceSave options)
+    # =============================
     @Halo(text='', spinner='dots')
     def saveStockData(stockDict, configManager, loadCount, intraday=False, downloadOnly=False, forceSave=False):
         exists, fileName = PKAssetsManager.afterMarketStockDataExists(
             configManager.isIntradayConfig() or intraday
         )
         outputFolder = Archiver.get_user_data_dir()
-        
         if downloadOnly:
             outputFolder = outputFolder.replace(f"results{os.sep}Data", "actions-data-download")
             if not os.path.isdir(outputFolder):
@@ -200,15 +228,16 @@ class PKAssetsManager:
                 except:
                     pass
             configManager.deleteFileWithPattern(rootDir=outputFolder)
-            
         cache_file = os.path.join(outputFolder, fileName)
-        
         if not os.path.exists(cache_file) or forceSave or (loadCount >= 0 and len(stockDict) > (loadCount + 1)):
             try:
                 with open(cache_file, "wb") as f:
                     pickle.dump(stockDict.copy(), f, protocol=pickle.HIGHEST_PROTOCOL)
                     OutputControls().printOutput(colorText.GREEN + "=> Done." + colorText.END)
-                
+                OutputControls().printOutput(colorText.WARN + f"[DEBUG] Saved cache file: {cache_file}" + colorText.END)
+                if os.path.exists(cache_file):
+                    mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_file))
+                    OutputControls().printOutput(colorText.WARN + f"[DEBUG] Cache file mtime after save: {mtime.strftime('%Y-%m-%d %H:%M:%S')}" + colorText.END)
                 if downloadOnly:
                     rootDirs = [Archiver.get_user_data_dir(), Archiver.get_user_indices_dir(), outputFolder]
                     patterns = ["*.csv", "*.pkl"]
@@ -218,7 +247,6 @@ class PKAssetsManager:
                                 OutputControls().printOutput(colorText.GREEN + f"=> {f}" + colorText.END)
                                 if "RUNNER" in os.environ.keys():
                                     Committer.execOSCommand(f"git add {f} -f >/dev/null 2>&1")
-                                    
             except pickle.PicklingError as e:
                 default_logger().debug(e, exc_info=True)
                 OutputControls().printOutput(
@@ -229,15 +257,16 @@ class PKAssetsManager:
             except Exception as e:
                 default_logger().debug(e, exc_info=True)
         else:
-            OutputControls().printOutput(
-                colorText.GREEN + "=> Already Cached." + colorText.END
-            )
+            OutputControls().printOutput(colorText.GREEN + "=> Already Cached." + colorText.END)
             if downloadOnly:
                 OutputControls().printOutput(colorText.GREEN + f"=> {cache_file}" + colorText.END)
-                
         return cache_file
 
+    # =============================
+    # Check for yfinance rate limit errors
+    # =============================
     def had_rate_limit_errors():
+        """Checks if any stored errors are YFRateLimitError."""
         err = ",".join(list(shared._ERRORS.values()))
         hitRateLimit = "YFRateLimitError" in err or "Too Many Requests" in err or "429" in err
         if hitRateLimit:
@@ -246,48 +275,55 @@ class PKAssetsManager:
             )
         return hitRateLimit
 
+    # =============================
+    # Download latest data for a batch of stocks (using PKTask/PKScheduler)
+    # =============================
     @Halo(text='  [+] Downloading fresh data from Data Providers...', spinner='dots')
     def downloadLatestData(stockDict, configManager, stockCodes=[], exchangeSuffix=".NS", downloadOnly=False, numStocksPerIteration=0):
-        shared._ERRORS.clear()
-        numStocksPerIteration = 100
+        shared._ERRORS.clear()  # Clear previous errors
+        batch_size = 100
         queueCounter = 0
-        iterations = int(len(stockCodes)/numStocksPerIteration) + 1
+        iterations = int(len(stockCodes) / batch_size) + 1
         tasksList = []
-        
+
         while queueCounter < iterations:
-            stocks = stockCodes[numStocksPerIteration * queueCounter : numStocksPerIteration * (queueCounter + 1)] if queueCounter < iterations else ["DUMMYStock"]
+            start_idx = batch_size * queueCounter
+            end_idx = start_idx + batch_size
+            stocks = stockCodes[start_idx:end_idx]
+            if not stocks:
+                break
             fn_args = (stocks, configManager.period, configManager.duration, exchangeSuffix)
-            task = PKTask(f"DataDownload-{queueCounter}", 
-                         long_running_fn=PKAssetsManager.fetcher.fetchStockDataWithArgs,
-                         long_running_fn_args=fn_args)
+            task = PKTask(f"DataDownload-{queueCounter}", long_running_fn=PKAssetsManager.fetcher.fetchStockDataWithArgs, long_running_fn_args=fn_args)
             task.userData = stocks
-            if len(stocks) > 0:
-                tasksList.append(task)
+            tasksList.append(task)
             queueCounter += 1
-            
+
         processedStocks = []
         if len(tasksList) > 0:
             with SuppressOutput(suppress_stderr=True, suppress_stdout=True):
                 PKScheduler.scheduleTasks(
                     tasksList=tasksList,
-                    label=f"Downloading latest data [{configManager.period},{configManager.duration}] (Total={len(stockCodes)} records in {len(tasksList)} batches){'Be Patient!' if len(stockCodes)> 2000 else ''}",
-                    timeout=(5+2.5*configManager.longTimeout*(4 if downloadOnly else 1)),
-                    minAcceptableCompletionPercentage=(100 if downloadOnly else 100),
+                    label=f"Downloading latest data [{configManager.period},{configManager.duration}] (Total={len(stockCodes)} records in {len(tasksList)} batches){' Be Patient!' if len(stockCodes) > 2000 else ''}",
+                    timeout=(5 + 2.5 * configManager.longTimeout * (4 if downloadOnly else 1)),
+                    minAcceptableCompletionPercentage=100,
                     showProgressBars=configManager.logsEnabled
                 )
-                
             for task in tasksList:
                 if task.result is not None and isinstance(task.result, pd.DataFrame) and not task.result.empty:
                     for stock in task.userData:
-                        taskResult = task.result.get(f"{stock}{exchangeSuffix}")
+                        ticker = f"{stock}{exchangeSuffix}"
+                        taskResult = task.result.get(ticker)
                         if taskResult is not None and isinstance(taskResult, pd.DataFrame) and not taskResult.empty:
                             stockDict[stock] = taskResult.to_dict("split")
                             processedStocks.append(stock)
-                            
-        leftOutStocks = list(set(stockCodes)-set(processedStocks))
+
+        leftOutStocks = list(set(stockCodes) - set(processedStocks))
         default_logger().debug(f"Attempted fresh download of {len(stockCodes)} stocks and downloaded {len(processedStocks)} stocks. {len(leftOutStocks)} stocks remaining.")
         return stockDict, leftOutStocks
 
+    # =============================
+    # Load stock data (from cache, server, or download as needed)
+    # =============================
     def loadStockData(
         stockDict,
         configManager,
@@ -302,163 +338,152 @@ class PKAssetsManager:
         userDownloadOption=None
     ):
         isIntraday = isIntraday or configManager.isIntradayConfig()
-        exists, cache_file = PKAssetsManager.afterMarketStockDataExists(isIntraday, forceLoad=forceLoad)
+        exists, cache_file = PKAssetsManager.afterMarketStockDataExists(
+            isIntraday, forceLoad=forceLoad
+        )
         initialLoadCount = len(stockDict)
         leftOutStocks = None
         recentDownloadFromOriginAttempted = False
         isTrading = PKDateUtilities.isTradingTime() and (PKDateUtilities.wasTradedOn() or not PKDateUtilities.isTodayHoliday()[0])
-        
         if userDownloadOption is not None and "B" in userDownloadOption:
             isTrading = False
-            
+
         if configManager.baseIndex not in stockCodes:
             stockCodes.insert(0, configManager.baseIndex)
-            
+
         if (stockCodes is not None and len(stockCodes) > 0) and (isTrading or downloadOnly):
             recentDownloadFromOriginAttempted = True
             stockDict, leftOutStocks = PKAssetsManager.downloadLatestData(
                 stockDict, configManager, stockCodes, exchangeSuffix=exchangeSuffix,
-                downloadOnly=downloadOnly, numStocksPerIteration=len(stockCodes) if stockCodes is not None else 0
+                downloadOnly=downloadOnly, numStocksPerIteration=len(stockCodes)
             )
-            if len(leftOutStocks) > int(len(stockCodes)*0.05) and not PKAssetsManager.had_rate_limit_errors():
+            if len(leftOutStocks) > int(len(stockCodes) * 0.05) and not PKAssetsManager.had_rate_limit_errors():
                 stockDict, _ = PKAssetsManager.downloadLatestData(
                     stockDict, configManager, leftOutStocks, exchangeSuffix=exchangeSuffix,
-                    downloadOnly=downloadOnly, numStocksPerIteration=len(leftOutStocks) if leftOutStocks is not None else 0
+                    downloadOnly=downloadOnly, numStocksPerIteration=len(leftOutStocks)
                 )
-                
+
         if downloadOnly or isTrading:
             start_backup()
             return stockDict
-            
+
         default_logger().debug(f"Stock data cache file:{cache_file} exists ->{str(exists)}")
         stockDataLoaded = False
         srcFilePath = os.path.join(Archiver.get_user_data_dir(), cache_file)
-        
+
         if os.path.exists(srcFilePath) and not forceRedownload:
             stockDict, stockDataLoaded = PKAssetsManager.loadDataFromLocalPickle(
                 stockDict, configManager, downloadOnly, defaultAnswer, exchangeSuffix, cache_file, isTrading
             )
-            
-        if (not stockDataLoaded and ("1d" if isIntraday else ConfigManager.default_period) == configManager.period
-            and ("1m" if isIntraday else ConfigManager.default_duration) == configManager.duration) or forceRedownload:
+
+        if (not stockDataLoaded and
+            ("1d" if isIntraday else ConfigManager.default_period) == configManager.period and
+            ("1m" if isIntraday else ConfigManager.default_duration) == configManager.duration) or forceRedownload:
             stockDict, stockDataLoaded = PKAssetsManager.downloadSavedDataFromServer(
                 stockDict, configManager, downloadOnly, defaultAnswer, retrial, forceLoad,
                 stockCodes, exchangeSuffix, isIntraday, forceRedownload, cache_file, isTrading
             )
-            
+
         if not stockDataLoaded:
             OutputControls().printOutput(
                 colorText.FAIL + "  [+] Cache unavailable on pkscreener server, Continuing.." + colorText.END
             )
-            
+
         if not stockDataLoaded and not recentDownloadFromOriginAttempted and not PKAssetsManager.had_rate_limit_errors():
             stockDict, _ = PKAssetsManager.downloadLatestData(
                 stockDict, configManager, stockCodes, exchangeSuffix=exchangeSuffix,
-                downloadOnly=downloadOnly, numStocksPerIteration=len(stockCodes) if stockCodes is not None else 0
+                downloadOnly=downloadOnly, numStocksPerIteration=len(stockCodes)
             )
-            
-        stockDataLoaded = stockDataLoaded or (len(stockDict) > 0 and (len(stockDict) != initialLoadCount))
-        leftOutStocks = list(set(stockCodes)-set(list(stockDict.keys())))
-        
-        if len(leftOutStocks) > int(len(stockCodes)*0.05) and not PKAssetsManager.had_rate_limit_errors():
+
+        stockDataLoaded = stockDataLoaded or (len(stockDict) > 0 and len(stockDict) != initialLoadCount)
+        leftOutStocks = list(set(stockCodes) - set(stockDict.keys()))
+        if len(leftOutStocks) > int(len(stockCodes) * 0.05) and not PKAssetsManager.had_rate_limit_errors():
             stockDict, _ = PKAssetsManager.downloadLatestData(
                 stockDict, configManager, leftOutStocks, exchangeSuffix=exchangeSuffix,
-                downloadOnly=downloadOnly, numStocksPerIteration=len(leftOutStocks) if leftOutStocks is not None else 0
+                downloadOnly=downloadOnly, numStocksPerIteration=len(leftOutStocks)
             )
-            
-        # Modified condition to save when:
-        # 1. Data was loaded (stockDataLoaded is True) AND
-        # 2. Either:
-        #    a. It's a download-only operation (downloadOnly is True), OR
-        #    b. We actually loaded new data (len(stockDict) > initialLoadCount)
-        if stockDataLoaded and (downloadOnly or len(stockDict) > initialLoadCount):
-            PKAssetsManager.saveStockData(
-                stockDict, configManager, initialLoadCount, isIntraday, downloadOnly, forceSave=stockDataLoaded
-            )
-            
+
+        # ✅ CRITICAL: Call saveStockData if data was loaded from cache in non-trading mode
+        if stockDataLoaded and (downloadOnly or not isTrading):
+            PKAssetsManager.saveStockData(stockDict, configManager, initialLoadCount, isIntraday, downloadOnly, forceSave=True)
+
         start_backup()
         return stockDict
 
+    # =============================
+    # Load data from local pickle cache
+    # =============================
     @Halo(text='  [+] Loading data from local cache...', spinner='dots')
     def loadDataFromLocalPickle(stockDict, configManager, downloadOnly, defaultAnswer, exchangeSuffix, cache_file, isTrading):
         stockDataLoaded = False
         srcFilePath = os.path.join(Archiver.get_user_data_dir(), cache_file)
-
         try:
             with open(srcFilePath, "rb") as f:
                 stockData = pickle.load(f)
             if not stockData:
                 return stockDict, stockDataLoaded
-                
+
+            # ✅ Fix: Add '!' at the end
             if not downloadOnly:
                 OutputControls().printOutput(
-                    colorText.GREEN + f"\n  [+] Automatically Using [{len(stockData)}] Tickers' Cached Stock Data" +
-                    (" due to After-Market hours!" if not PKDateUtilities.isTradingTime() else "") +
-                    colorText.END
+                    colorText.GREEN + f"\n  [+] Automatically Using [{len(stockData)}] Tickers' Cached Stock Data due to After-Market hours!" + colorText.END
                 )
-                
+
             multiIndex = stockData.keys()
             if isinstance(multiIndex, pd.MultiIndex):
                 listStockCodes = sorted(set(multiIndex.get_level_values(0)))
             else:
                 listStockCodes = list(stockData.keys())
-                
             if exchangeSuffix and any(exchangeSuffix in code for code in listStockCodes):
                 listStockCodes = [x.replace(exchangeSuffix, "") for x in listStockCodes]
-                
+
             for stock in listStockCodes:
                 df_or_dict = stockData.get(stock)
                 df_or_dict = df_or_dict.to_dict("split") if isinstance(df_or_dict, pd.DataFrame) else df_or_dict
                 existingPreLoadedData = stockDict.get(stock)
-                
                 if existingPreLoadedData:
                     if isTrading:
                         for col in ["MF", "FII", "MF_Date", "FII_Date", "FairValue"]:
                             existingPreLoadedData[col] = df_or_dict.get(col)
                         stockDict[stock] = existingPreLoadedData
                     else:
-                        stockDict[stock] = existingPreLoadedData  # Preserve existing data
+                        # ✅ Fix: In-memory data wins
+                        stockDict[stock] = {**df_or_dict, **existingPreLoadedData}
                 elif not isTrading:
                     stockDict[stock] = df_or_dict
-                    
             stockDataLoaded = True
-            
-        except pickle.UnpicklingError as e:
-            default_logger().debug(e, exc_info=True)
+
+        except EOFError:
+            default_logger().debug("EOFError during pickle load", exc_info=True)
+            OutputControls().printOutput(colorText.FAIL + "  [+] Stock Cache Corrupted." + colorText.END)
+            if PKAssetsManager.promptFileExists(defaultAnswer=defaultAnswer) == "Y":
+                configManager.deleteFileWithPattern()
+        except pickle.UnpicklingError:
+            default_logger().debug("UnpicklingError during pickle load", exc_info=True)
             OutputControls().printOutput(
                 colorText.FAIL + "  [+] Error while Reading Stock Cache. Press <Enter> to continue..." + colorText.END
             )
             if PKAssetsManager.promptFileExists(defaultAnswer=defaultAnswer) == "Y":
                 configManager.deleteFileWithPattern()
-                
-        except EOFError as e:
-            default_logger().debug(e, exc_info=True)
-            OutputControls().printOutput(
-                colorText.FAIL + "  [+] Stock Cache Corrupted." + colorText.END
-            )
-            if PKAssetsManager.promptFileExists(defaultAnswer=defaultAnswer) == "Y":
-                configManager.deleteFileWithPattern()
-                
         except KeyboardInterrupt:
             raise
-            
         return stockDict, stockDataLoaded
 
+    # =============================
+    # Download saved defaults from server (for cache file)
+    # =============================
     @Halo(text='', spinner='dots')
     def downloadSavedDefaultsFromServer(cache_file):
         fileDownloaded = False
         resp = Utility.tools.tryFetchFromServer(cache_file)
         if resp is not None:
             default_logger().debug(f"Stock data cache file:{cache_file} request status ->{resp.status_code}")
-            
         if resp is not None and resp.status_code == 200:
             contentLength = resp.headers.get("content-length")
             serverBytes = int(contentLength) if contentLength is not None else 0
-            KB = 1024
-            MB = KB * 1024
+            KB, MB = 1024, 1024 * 1024
             chunksize = MB if serverBytes >= MB else (KB if serverBytes >= KB else 1)
             filesize = int(serverBytes / chunksize)
-            
             if filesize > 40:
                 try:
                     with open(os.path.join(Archiver.get_user_data_dir(), cache_file), "w+") as f:
@@ -466,24 +491,22 @@ class PKAssetsManager:
                     fileDownloaded = True
                 except:
                     pass
-                    
         return fileDownloaded
 
+    # =============================
+    # Download and load saved data from server (with progress bar)
+    # =============================
     def downloadSavedDataFromServer(stockDict, configManager, downloadOnly, defaultAnswer, retrial, forceLoad, stockCodes, exchangeSuffix, isIntraday, forceRedownload, cache_file, isTrading):
         stockDataLoaded = False
         resp = Utility.tools.tryFetchFromServer(cache_file)
-        
         if resp is not None:
             default_logger().debug(f"Stock data cache file:{cache_file} request status ->{resp.status_code}")
-            
         if resp is not None and resp.status_code == 200:
             contentLength = resp.headers.get("content-length")
             serverBytes = int(contentLength) if contentLength is not None else 0
-            KB = 1024
-            MB = KB * 1024
+            KB, MB = 1024, 1024 * 1024
             chunksize = MB if serverBytes >= MB else (KB if serverBytes >= KB else 1)
             filesize = int(serverBytes / chunksize)
-            
             if filesize > 40 and chunksize == MB:
                 bar, spinner = Utility.tools.getProgressbarStyle()
                 try:
@@ -497,75 +520,62 @@ class PKAssetsManager:
                             if dl >= filesize:
                                 progressbar(1.0)
                     f.close()
-                    
                     with open(os.path.join(Archiver.get_user_data_dir(), cache_file), "rb") as f:
                         stockData = pickle.load(f)
-                        
                     if len(stockData) > 0:
                         multiIndex = stockData.keys()
                         if isinstance(multiIndex, pd.MultiIndex):
-                            listStockCodes = sorted(list(filter(None, list(set(multiIndex.get_level_values(0)))))
-                            if len(listStockCodes) > 0 and len(exchangeSuffix) > 0 and exchangeSuffix in listStockCodes[0]:
-                                listStockCodes = [x.replace(exchangeSuffix, "") for x in listStockCodes]
+                            listStockCodes = sorted(list(set(multiIndex.get_level_values(0))))
                         else:
                             listStockCodes = list(stockData.keys())
-                            if len(listStockCodes) > 0 and len(exchangeSuffix) > 0 and exchangeSuffix in listStockCodes[0]:
-                                listStockCodes = [x.replace(exchangeSuffix, "") for x in listStockCodes]
-                                
+                        if len(listStockCodes) > 0 and exchangeSuffix in listStockCodes[0]:
+                            listStockCodes = [x.replace(exchangeSuffix, "") for x in listStockCodes]
                         for stock in listStockCodes:
                             df_or_dict = stockData.get(stock)
                             df_or_dict = df_or_dict.to_dict("split") if isinstance(df_or_dict, pd.DataFrame) else df_or_dict
-                            
-                            try:
-                                existingPreLoadedData = stockDict.get(stock)
-                                if existingPreLoadedData is not None:
-                                    if isTrading:
-                                        cols = ["MF", "FII", "MF_Date", "FII_Date", "FairValue"]
-                                        for col in cols:
-                                            existingPreLoadedData[col] = df_or_dict.get(col)
-                                        stockDict[stock] = existingPreLoadedData
-                                    else:
-                                        stockDict[stock] = df_or_dict | existingPreLoadedData
+                            existingPreLoadedData = stockDict.get(stock)
+                            if existingPreLoadedData is not None:
+                                if isTrading:
+                                    for col in ["MF", "FII", "MF_Date", "FII_Date", "FairValue"]:
+                                        existingPreLoadedData[col] = df_or_dict.get(col)
+                                    stockDict[stock] = existingPreLoadedData
                                 else:
-                                    if not isTrading:
-                                        stockDict[stock] = df_or_dict
-                            except:
-                                continue
-                                
+                                    stockDict[stock] = {**df_or_dict, **existingPreLoadedData}
+                            elif not isTrading:
+                                stockDict[stock] = df_or_dict
                         stockDataLoaded = True
                         OutputControls().moveCursorUpLines(1)
-                        
                 except KeyboardInterrupt:
-                    raise KeyboardInterrupt
+                    raise
                 except Exception as e:
                     default_logger().debug(e, exc_info=True)
-                    f.close()
+                    try:
+                        f.close()
+                    except:
+                        pass
                     OutputControls().printOutput("[!] Download Error - " + str(e))
-            else:
-                default_logger().debug(
-                    f"Stock data cache file:{cache_file} on server has length ->{filesize} {'Mb' if chunksize >= MB else ('Kb' if chunksize >= KB else 'bytes')}"
-                )
-                
             if not retrial and not stockDataLoaded:
                 stockDict = PKAssetsManager.loadStockData(
                     stockDict, configManager, downloadOnly, defaultAnswer, retrial=True,
                     forceLoad=forceLoad, stockCodes=stockCodes, exchangeSuffix=exchangeSuffix,
                     isIntraday=isIntraday, forceRedownload=forceRedownload
                 )
-                
         return stockDict, stockDataLoaded
 
+    # =============================
+    # Prompt user if file exists (Y/N)
+    # =============================
     def promptFileExists(cache_file="stock_data_*.pkl", defaultAnswer=None):
         try:
             if defaultAnswer is None:
                 response = str(
                     input(
-                        colorText.WARN + "[>] " + cache_file + " already exists. Do you want to replace this? [Y/N] (Default: Y): "
+                        colorText.WARN + f"[>] {cache_file} already exists. Do you want to replace this? [Y/N] (Default: Y): "
                     ) or "Y"
                 ).upper()
             else:
                 response = defaultAnswer
-        except ValueError as e:
-            default_logger().debug(e, exc_info=True)
-            pass
+        except ValueError:
+            default_logger().debug("User input error", exc_info=True)
+            response = "Y"
         return "Y" if response != "N" else "N"
