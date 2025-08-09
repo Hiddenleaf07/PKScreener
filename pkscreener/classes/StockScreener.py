@@ -1039,7 +1039,7 @@ class StockScreener:
                 else:
                     hostRef.default_logger.debug(e, exc_info=True)
                 pass
-        if "Datetime" in data.columns: # for intraday data, the column name is Datetime
+        if data is not None and "Datetime" in data.columns: # for intraday data, the column name is Datetime
             with pd.option_context('mode.chained_assignment', None):
                 data["Date"] = data["Datetime"]
         try:
@@ -1053,7 +1053,7 @@ class StockScreener:
             pass
         if ((shouldCache and not self.isTradingTime and (hostData is None  or hostDataLength == 0)) or downloadOnly) \
             or (shouldCache and hostData is None):  # and backtestDuration == 0 # save only if we're NOT backtesting
-                if start is None or start is lastTradingDate and data is not None:
+                if (start is None or start is lastTradingDate) and data is not None:
                     objectDictionary[stock] = data.to_dict("split")
                 if downloadOnly:
                     with hostRef.processingResultsCounter.get_lock():
