@@ -519,16 +519,24 @@ class PKAssetsManager:
                 with open(temp_path, 'rb') as f:
                     data = pickle.load(f)
                 
+                default_logger().debug(f"Loaded PKL file. Total items: {len(data) if data else 0}")
+                if data:
+                    default_logger().debug(f"Sample keys from PKL: {list(data.keys())[:5]}")
+
                 if data and len(data) > 0:
                     rows_count = []
                     sample_symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'SBIN']
                     for sym in sample_symbols:
                         if sym in data:
                             item = data[sym]
+                            current_rows = 0
                             if isinstance(item, pd.DataFrame):
-                                rows_count.append(len(item))
+                                current_rows = len(item)
                             elif isinstance(item, dict) and 'data' in item:
-                                rows_count.append(len(item['data']))
+                                current_rows = len(item['data'])
+                            
+                            rows_count.append(current_rows)
+                            default_logger().debug(f"Symbol {sym}: Found {current_rows} rows.")
                     
                     avg_rows = sum(rows_count) / len(rows_count) if rows_count else 0
                     
@@ -536,7 +544,7 @@ class PKAssetsManager:
                         shutil.move(temp_path, output_path)
                         return True, output_path, len(data), avg_rows
                     else:
-                        default_logger().debug(f"Downloaded PKL has insufficient rows (avg {avg_rows:.1f} < {min_rows_required}). Discarding.")
+                        default_logger().debug(f"Downloaded PKL has insufficient rows (avg {avg_rows:.1f} < {min_rows_required}). Discarding. Sampled symbols rows: {rows_count}")
                         os.remove(temp_path)
             
             return False, None, 0, 0
@@ -563,11 +571,11 @@ class PKAssetsManager:
         
         try:
             data_dir = Archiver.get_user_data_dir()
-            output_path = os.path.join(data_dir, "stock_data_github.pkl")
             MIN_ROWS_REQUIRED = 100 # Consistent with the existing logic
             
             # 1. First, try to download the exact file name expected by Archiver.afterMarketStockDataExists()
             _, expected_cache_file_name = Archiver.afterMarketStockDataExists(intraday=intraday)
+            output_path = os.path.join(data_dir, expected_cache_file_name)
             expected_url_primary = f"https://raw.githubusercontent.com/pkjmesra/PKScreener/actions-data-download/actions-data-download/{expected_cache_file_name}"
             expected_url_fallback = f"https://raw.githubusercontent.com/pkjmesra/PKScreener/actions-data-download/results/Data/{expected_cache_file_name}"
 
