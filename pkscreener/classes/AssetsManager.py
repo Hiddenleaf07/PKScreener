@@ -1297,7 +1297,7 @@ class PKAssetsManager:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"AssetsManager.py:loadDataFromLocalPickle:1030","message":"Error logging","data":{"error":str(e)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                 except: pass
             # #endregion
-            if stockDict:
+            if stockDict and isTrading:
                 # #region agent log
                 try:
                     with open(log_path, 'a') as f:
