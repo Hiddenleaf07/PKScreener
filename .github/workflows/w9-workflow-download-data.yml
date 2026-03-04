@@ -239,7 +239,7 @@ jobs:
         TICKS_URL="https://raw.githubusercontent.com/pkjmesra/PKScreener/actions-data-download/results/Data/ticks.json.zip"
         curl -sL -o /tmp/ticks.json.zip "$TICKS_URL" || true
         
-        TICKS_JSON_URL="https://raw.githubusercontent.com/pkjmesra/PKScreener/actions-data-download/results/Data/ticks.json"
+        TICKS_JSON_URL="https://raw.githubusercontent.com/pkjmesra/PKBrokers/main/pkbrokers/kite/examples/results/Data/ticks.json",
         curl -sL -o /tmp/ticks.json "$TICKS_JSON_URL" || true
         
         if [ -f /tmp/ticks.json.zip ] && [ -s /tmp/ticks.json.zip ]; then
