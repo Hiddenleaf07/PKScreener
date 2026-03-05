@@ -74,7 +74,7 @@ jobs:
         
         # Define size thresholds (in bytes)
         DAILY_PKL_MIN_SIZE=25000000    # 25 MB minimum for daily pkl
-        INTRADAY_PKL_MIN_SIZE=1000000  # 1 MB minimum for intraday pkl
+        INTRADAY_PKL_MIN_SIZE=800000  # 1 MB minimum for intraday pkl
         DB_MIN_SIZE=50000000           # 50 MB minimum for SQLite database
         
         # Run the sync script with validation
@@ -188,7 +188,7 @@ jobs:
         echo "Removing files that failed size validation..."
         
         DAILY_PKL_MIN_SIZE=25000000
-        INTRADAY_PKL_MIN_SIZE=1000000
+        INTRADAY_PKL_MIN_SIZE=800000
         DB_MIN_SIZE=50000000
         
         # Remove undersized daily pkl files

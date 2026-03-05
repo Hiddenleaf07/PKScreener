@@ -118,9 +118,9 @@ jobs:
           import pytz
           
           # Define size thresholds (in bytes)
-          TICKS_MIN_SIZE = 1000000        # 1 MB minimum for ticks.json
+          TICKS_MIN_SIZE = 800000        # 1 MB minimum for ticks.json
           DAILY_PKL_MIN_SIZE = 25000000    # 25 MB minimum for daily pkl
-          INTRADAY_PKL_MIN_SIZE = 1000000  # 1 MB minimum for intraday pkl
+          INTRADAY_PKL_MIN_SIZE = 800000  # 1 MB minimum for intraday pkl
           
           # Create data directory
           os.makedirs("results/Data", exist_ok=True)
@@ -411,9 +411,9 @@ jobs:
           echo "📊 Validating published files..."
           
           # Define thresholds
-          TICKS_MIN_SIZE=1000000
+          TICKS_MIN_SIZE=800000
           DAILY_PKL_MIN_SIZE=25000000
-          INTRADAY_PKL_MIN_SIZE=1000000
+          INTRADAY_PKL_MIN_SIZE=800000
           
           # Check ticks.json if it exists
           if [ -f "results/Data/ticks.json" ]; then

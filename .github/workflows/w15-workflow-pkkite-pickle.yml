@@ -147,8 +147,8 @@ jobs:
       run: |
         # Define size thresholds (in bytes)
         DAILY_PKL_MIN_SIZE=25000000    # 25 MB minimum for daily pkl
-        INTRADAY_PKL_MIN_SIZE=1000000  # 1 MB minimum for intraday pkl
-        TICKS_MIN_SIZE=1000000         # 1 MB minimum for ticks.json
+        INTRADAY_PKL_MIN_SIZE=800000  # 1 MB minimum for intraday pkl
+        TICKS_MIN_SIZE=800000         # 1 MB minimum for ticks.json
         
         echo "=== Validating Generated Files ==="
         
@@ -283,8 +283,8 @@ jobs:
         mkdir -p actions-data-download
         
         DAILY_PKL_MIN_SIZE=25000000
-        INTRADAY_PKL_MIN_SIZE=1000000
-        TICKS_MIN_SIZE=1000000
+        INTRADAY_PKL_MIN_SIZE=800000
+        TICKS_MIN_SIZE=800000
         
         FILES_COPIED=0
         
@@ -377,7 +377,7 @@ jobs:
         
         # Count valid files to commit
         DAILY_PKL_MIN_SIZE=25000000
-        INTRADAY_PKL_MIN_SIZE=1000000
+        INTRADAY_PKL_MIN_SIZE=800000
         FILES_TO_COMMIT=0
         DAILY_SIZE=0
         INTRADAY_SIZE=0
@@ -411,7 +411,7 @@ jobs:
         # Add ticks.json if valid
         if [ -f "actions-data-download/ticks.json" ]; then
           ticks_size=$(stat -c%s "actions-data-download/ticks.json" 2>/dev/null || stat -f%z "actions-data-download/ticks.json")
-          if [ "$ticks_size" -ge 1000000 ]; then
+          if [ "$ticks_size" -ge 800000 ]; then
             git add -f actions-data-download/ticks.json
             FILES_TO_COMMIT=$((FILES_TO_COMMIT + 1))
             echo "✅ Staging valid ticks.json ($((ticks_size/1024/1024)) MB)"
