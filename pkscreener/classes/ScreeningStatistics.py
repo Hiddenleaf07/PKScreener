@@ -3763,7 +3763,7 @@ class ScreeningStatistics:
                 saveDict[f"LTP{prd}"] = round(ltpTdy, 2)
                 saveDict[f"Growth{prd}"] = round(ltpTdy - prevLtp, 2)
                 if prd == 22 or (prd == requestedPeriod):
-                    changePercent = round(((prevLtp-ltpTdy) if requestedPeriod ==0 else (ltpTdy - prevLtp))*100/ltpTdy, 2)
+                    changePercent = round(((prevLtp-ltpTdy) if requestedPeriod ==0 else (ltpTdy - prevLtp))*100/ltpTdy, 2) if ltpTdy != 0 else 0
                     saveDict[f"{prd}-Pd"] = f"{changePercent}%" if not pd.isna(changePercent) else '-'
                     screenDict[f"{prd}-Pd"] = ((colorText.GREEN if changePercent >=0 else colorText.FAIL) + f"{changePercent}%" + colorText.END) if not pd.isna(changePercent) else '-'
                     if (prd == requestedPeriod):
