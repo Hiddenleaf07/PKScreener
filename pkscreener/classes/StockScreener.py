@@ -1091,27 +1091,27 @@ class StockScreener:
                 columns = hostData["columns"]
                 # Parse index to datetime before creating DataFrame to ensure proper date handling
                 index_data = hostData["index"]
-                if index_data and len(index_data) > 0:
-                    # Try to parse index as datetime with multiple format support
-                    try:
-                        parsed_index = pd.to_datetime(index_data, format='mixed', utc=True, errors='coerce')
-                        # Convert to tz-naive for consistency
-                        if hasattr(parsed_index, 'tz') and parsed_index.tz is not None:
-                            parsed_index = parsed_index.tz_localize(None)
-                    except:
-                        # Fallback: try without format specification
-                        try:
-                            parsed_index = pd.to_datetime(index_data, errors='coerce')
-                            if hasattr(parsed_index, 'tz') and parsed_index.tz is not None:
-                                parsed_index = parsed_index.tz_localize(None)
-                        except:
-                            # Last resort: use as-is
-                            parsed_index = index_data
-                else:
-                    parsed_index = index_data
+                # if index_data and len(index_data) > 0:
+                #     # Try to parse index as datetime with multiple format support
+                #     try:
+                #         parsed_index = index_data # pd.to_datetime(index_data, format='mixed', utc=True, errors='coerce')
+                #         # Convert to tz-naive for consistency
+                #         # if hasattr(parsed_index, 'tz') and parsed_index.tz is not None:
+                #         #     parsed_index = parsed_index.tz_localize(None)
+                #     except:
+                #         # Fallback: try without format specification
+                #         try:
+                #             parsed_index = pd.to_datetime(index_data, errors='coerce')
+                #             if hasattr(parsed_index, 'tz') and parsed_index.tz is not None:
+                #                 parsed_index = parsed_index.tz_localize(None)
+                #         except:
+                #             # Last resort: use as-is
+                #             parsed_index = index_data
+                # else:
+                #     parsed_index = index_data
                 
                 data = pd.DataFrame(
-                        hostData["data"], columns=columns, index=parsed_index
+                        hostData["data"], columns=columns, index=index_data
                     )
             except (ValueError, AssertionError) as e: # pragma: no cover
                 # 9 columns passed, passed data had 11 columns
@@ -1125,7 +1125,7 @@ class StockScreener:
                         num_diff -= 1
                     # Use parsed index here too
                     data = pd.DataFrame(
-                            hostData["data"], columns=columns, index=parsed_index
+                            hostData["data"], columns=columns, index=index_data
                         )
                 else:
                     hostRef.default_logger.debug(e, exc_info=True)
