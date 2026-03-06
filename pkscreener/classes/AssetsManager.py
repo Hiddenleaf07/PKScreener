@@ -1042,9 +1042,9 @@ class PKAssetsManager:
                             stockDict[stock] = taskResult.to_dict("split")
                             processedStocks.append(stock)
         """
-        leftOutStocks = 0 # list(set(stockCodes)-set(processedStocks))
+        leftOutStocks = list(set(stockCodes)-set(processedStocks))
         default_logger().debug(f"Attempted fresh download of {len(stockCodes)} stocks and downloaded {len(processedStocks)} stocks. {len(leftOutStocks)} stocks remaining/ignored.")
-        return stockDict, leftOutStocks
+        return stockDict, 0
 
     def loadStockData(
         stockDict,
