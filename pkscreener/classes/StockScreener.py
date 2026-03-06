@@ -1141,9 +1141,9 @@ class StockScreener:
                 data.rename(columns={"index": "Date"}, inplace=True)
             data.set_index("Date", inplace=True)
             # Ensure index is datetime and tz-naive
-            data.index = pd.to_datetime(data.index, format='mixed', utc=True, errors='coerce')
-            if hasattr(data.index, 'tz') and data.index.tz is not None:
-                data.index = data.index.tz_localize(None)
+            # data.index = pd.to_datetime(data.index, format='mixed', utc=True, errors='coerce')
+            # if hasattr(data.index, 'tz') and data.index.tz is not None:
+            #     data.index = data.index.tz_localize(None)
             # Sort by index in descending order to ensure latest date is at the beginning (index[0])
             # This is the expected format for validation functions like validate15MinutePriceVolumeBreakout
             data = data.sort_index(ascending=False)
