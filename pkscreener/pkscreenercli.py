@@ -836,13 +836,14 @@ def _remove_old_instances():
 # =============================================================================
 
 # Global state
+
 args = None
 argParser = ArgumentParser.create_parser()
 configManager = ConfigManager.tools()
 
 # Parse initial arguments
 args = _get_debug_args()
-argsv = argParser.parse_known_args(args=args)
+argsv = argParser.parse_known_args(args=args) if args is not None else argParser.parse_known_args()
 args = argsv[0]
 
 

@@ -2290,7 +2290,13 @@ def addCommandsForMenuItems(application):
 #   )
 
 @ping(interval=300,instance=PKAnalyticsService(),prefix="bot_")
+# Add this to the beginning of runpkscreenerbot() to debug
 def runpkscreenerbot(availability=True) -> None:
+    print(f"Python-telegram-bot version: {TG_VER}")
+    print(f"Python version: {sys.version}")
+    print(f"Working directory: {os.getcwd()}")
+    print(f"Environment variables: {[k for k in os.environ.keys() if 'TOKEN' in k or 'CHAT' in k]}")
+    
     """Run the bot."""
     # Create the Application and pass it your bot's token.
     global chat_idADMIN, Channel_Id, bot_available, _updater

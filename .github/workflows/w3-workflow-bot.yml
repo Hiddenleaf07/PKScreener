@@ -90,38 +90,32 @@ jobs:
       with:
         python-version: ${{ inputs.targetPythonVersion || 3.12 }}
 
-    - name: Restore Dependencies from Windows Cache
-      if: startsWith(runner.os, 'Windows')
-      uses: actions/cache@v4
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+    # - name: Restore Dependencies from Windows Cache
+    #   if: startsWith(runner.os, 'Windows')
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: ~\AppData\Local\pip\Cache
+    #     key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-pip-
   
-    - name: Load Cache for Linux Dependencies
+    - name: Cache TA-Lib
       uses: actions/cache@v4
-      if: startsWith(runner.os, 'Linux')
       with:
         path: |
-          /usr/include/ta-lib
-          /usr/bin/ta-lib-config
-          /usr/lib/libta_lib.la
-          /usr/lib/libta_lib.a
-        key: ${{ runner.os }}-talib
-        restore-keys: |
-          ${{ runner.os }}-talib
+          ~/talib
+        key: ${{ runner.os }}-talib-${{ hashFiles('**/install-talib.sh') }}
         
-    - name: Restore Dependencies from Ubuntu Cache
-      if: startsWith(runner.os, 'Linux')
-      uses: actions/cache@v4
-      id: cache-venv  # name for referring later
-      with:
-        path: ./.venv/  # what we cache: the virtualenv
-        # The cache key depends on requirements.txt
-        key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-venv-
+    # - name: Restore Dependencies from Ubuntu Cache
+    #   if: startsWith(runner.os, 'Linux')
+    #   uses: actions/cache@v4
+    #   id: cache-venv  # name for referring later
+    #   with:
+    #     path: ./.venv/  # what we cache: the virtualenv
+    #     # The cache key depends on requirements.txt
+    #     key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-venv-
 
     - name: Install TA-Lib for Windows
       if: ${{ inputs.installtalib == 'Y' && startsWith(runner.os, 'Windows') }}
@@ -141,6 +135,7 @@ jobs:
         fi
 
     - name: Install TA-Lib for Linux
+      # if: steps.cache-talib.outputs.cache-hit != 'true'
       if: ${{ inputs.installtalib == 'Y' && startsWith(runner.os, 'Linux') }}
       run: |
         cd .github/dependencies/
@@ -307,6 +302,16 @@ jobs:
       run: |
         pkscreenercli.exe --bot --botavailable ${{ inputs.cliOptions || '' }}
 
+    - name: Verify bot dependencies
+      timeout-minutes: 1
+      continue-on-error: true
+      shell: bash
+      if: startsWith(runner.os, 'Linux')
+      run: |
+        ldd /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin
+        # Check if the bot can at least show help
+        /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --help
+
     - name: Telegram Bot on Ubuntu
       timeout-minutes: 350
       continue-on-error: true
@@ -318,8 +323,54 @@ jobs:
         CI_PAT: ${{ secrets.CI_PAT }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        pip3 install libsql
-        /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }}
+          echo "Starting bot at $(date)"
+          # Run bot and capture both stdout and stderr separately
+          /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }} > bot_stdout.log 2> bot_stderr.log &
+          BOT_PID=$!
+          
+          # Wait a bit to see if it starts properly
+          sleep 30
+          
+          # Check if bot is still running
+          if kill -0 $BOT_PID 2>/dev/null; then
+            echo "✅ Bot is running with PID $BOT_PID"
+            echo "Bot process info:"
+            ps aux | grep pkscreener | grep -v grep
+            
+            # Show last few lines of stdout
+            echo "Last 10 lines of stdout:"
+            tail -10 bot_stdout.log
+            
+            # Show any errors from stderr
+            if [ -s bot_stderr.log ]; then
+              echo "⚠️  Errors found in stderr:"
+              cat bot_stderr.log
+            else
+              echo "✅ No errors in stderr"
+            fi
+            
+            # Wait for bot to complete (or timeout)
+            wait $BOT_PID
+            EXIT_CODE=$?
+            echo "Bot exited with code $EXIT_CODE at $(date)"
+          else
+            echo "❌ Bot failed to start or crashed immediately"
+            echo "=== STDOUT ==="
+            cat bot_stdout.log
+            echo "=== STDERR ==="
+            cat bot_stderr.log
+          fi
+
+    - name: Upload bot logs
+      if: always()  # This ensures logs are uploaded even if the bot fails
+      uses: actions/upload-artifact@v4
+      with:
+        name: bot-logs-${{ github.run_id }}
+        path: |
+          bot_stdout.log
+          bot_stderr.log
+        retention-days: 7  # Keep logs for 7 days
+        if-no-files-found: warn
 
     - name: Delete this repo workflow run
       shell: bash
