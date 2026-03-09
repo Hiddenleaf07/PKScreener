@@ -331,7 +331,7 @@ jobs:
         echo "Bot will run in foreground with full output"
         
         # Source the environment file so the bot can access secrets
-        # source .env.dev
+        source /home/runner/work/PKScreener/PKScreener/pkscreener/.env.dev
         echo `pwd`
         ls -l
         # Run the bot in the foreground (not background) so the workflow waits
