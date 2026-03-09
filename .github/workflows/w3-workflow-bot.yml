@@ -323,54 +323,20 @@ jobs:
         CI_PAT: ${{ secrets.CI_PAT }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-          echo "Starting bot at $(date)"
-          # Run bot and capture both stdout and stderr separately
-          /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }} > bot_stdout.log 2> bot_stderr.log &
-          BOT_PID=$!
-          
-          # Wait a bit to see if it starts properly
-          sleep 30
-          
-          # Check if bot is still running
-          if kill -0 $BOT_PID 2>/dev/null; then
-            echo "✅ Bot is running with PID $BOT_PID"
-            echo "Bot process info:"
-            ps aux | grep pkscreener | grep -v grep
-            
-            # Show last few lines of stdout
-            echo "Last 10 lines of stdout:"
-            tail -10 bot_stdout.log
-            
-            # Show any errors from stderr
-            if [ -s bot_stderr.log ]; then
-              echo "⚠️  Errors found in stderr:"
-              cat bot_stderr.log
-            else
-              echo "✅ No errors in stderr"
-            fi
-            
-            # Wait for bot to complete (or timeout)
-            wait $BOT_PID
-            EXIT_CODE=$?
-            echo "Bot exited with code $EXIT_CODE at $(date)"
-          else
-            echo "❌ Bot failed to start or crashed immediately"
-            echo "=== STDOUT ==="
-            cat bot_stdout.log
-            echo "=== STDERR ==="
-            cat bot_stderr.log
-          fi
+        pip3 install requests
+        echo "Starting bot at $(date)"
+        echo "Bot will run in foreground with full output"
+        
+        # Source the environment file so the bot can access secrets
+        source .env.dev
+        
+        # Run the bot in the foreground (not background) so the workflow waits
+        # This will keep the workflow running until the bot exits
+        /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }} 2>&1 | tee bot_output.log
+        
+        # This line will only execute after the bot exits
+        echo "Bot exited with code $? at $(date)"
 
-    - name: Upload bot logs
-      if: always()  # This ensures logs are uploaded even if the bot fails
-      uses: actions/upload-artifact@v4
-      with:
-        name: bot-logs-${{ github.run_id }}
-        path: |
-          bot_stdout.log
-          bot_stderr.log
-        retention-days: 7  # Keep logs for 7 days
-        if-no-files-found: warn
 
     - name: Delete this repo workflow run
       shell: bash
