@@ -328,7 +328,7 @@ jobs:
         echo "Bot will run in foreground with full output"
         
         # Source the environment file so the bot can access secrets
-        source .env.dev
+        # source .env.dev
         
         # Run the bot in the foreground (not background) so the workflow waits
         # This will keep the workflow running until the bot exits
