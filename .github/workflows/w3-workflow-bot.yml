@@ -288,6 +288,9 @@ jobs:
         EOF
         
         echo "Created .env.dev file with secrets"
+        echo `pwd`
+        cp .env.dev /home/runner/work/PKScreener/PKScreener/
+        ls -l
 
     - name: Run Telegram bot on Windows
       shell: cmd
@@ -329,7 +332,8 @@ jobs:
         
         # Source the environment file so the bot can access secrets
         # source .env.dev
-        
+        echo `pwd`
+        ls -l
         # Run the bot in the foreground (not background) so the workflow waits
         # This will keep the workflow running until the bot exits
         /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }} 2>&1 | tee bot_output.log
