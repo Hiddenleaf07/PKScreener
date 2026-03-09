@@ -744,34 +744,27 @@ class ApplicationRunner:
 # =============================================================================
 
 def _get_debug_args():
-    """Get debug arguments from command line."""
-    import csv
-    import re
+    """Get debug arguments from command line - fixed version."""
+    import sys
+    import shlex
     
-    def re_split(s):
-        def strip_quotes(s):
-            if s and (s[0] == '"' or s[0] == "'") and s[0] == s[-1]:
-                return s[1:-1]
-            return s
-        return [strip_quotes(p).replace('\\"', '"').replace("\\'", "'")
-                for p in re.findall(r'(?:[^"\s]*"(?:\\.|[^"])*"[^"\s]*)+|(?:[^\'\s]*\'(?:\\.|[^\'])*\'[^\'\s]*)+|[^\s]+', s)]
-    
-    global args
     try:
         if args is not None:
-            args = list(args)
-        return args
+            # If args is already set, use it
+            if isinstance(args, str):
+                # Split the string properly, respecting quotes
+                return shlex.split(args)
+            return list(args) if args else []
     except NameError:
+        # Get from sys.argv
         args = sys.argv[1:]
-        if isinstance(args, list):
-            if len(args) == 1:
-                return re_split(args[0])
-            return args
-        return None
-    except TypeError:
+        # If there's only one argument and it contains spaces, split it
+        if len(args) == 1 and ' ' in args[0]:
+            return shlex.split(args[0])
         return args
     except Exception:
-        return None
+        pass
+    return []
 
 
 def _exit_gracefully(config_manager, arg_parser):
