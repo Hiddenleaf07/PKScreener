@@ -646,7 +646,7 @@ def initPostLevel1Execution(indexOption, executeOption=None, skip=[], retrial=Fa
                 + "  [+] You chose: "
                 + level0MenuDict[selectedChoice["0"]].strip()
                 + " > "
-                + level1_X_MenuDict[selectedChoice["1"]].strip()
+                + level1_X_MenuDict.get(selectedChoice["1"],"").strip()
                 + (f" (Piped Scan Mode) [{userPassedArgs.pipedmenus}]" if (userPassedArgs is not None and userPassedArgs.pipedmenus is not None) else "")
                 + colorText.END
             )
