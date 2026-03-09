@@ -514,7 +514,7 @@ class ApplicationRunner:
         # Handle options processing
         if self.args.options is not None:
             self.args.options = self.args.options.replace("::", ":").replace('"', "").replace("'", "")
-            if self.args.options.upper().startswith("C") or "C:" in self.args.options.upper():
+            if str(self.args.options).upper().startswith("C") or "C:" in str(self.args.options).upper():
                 self.args.runintradayanalysis = True
             self.args, _ = self._update_progress_status()
         
@@ -801,11 +801,11 @@ def _exit_gracefully(config_manager, arg_parser):
         # Reset config if needed
         argsv = arg_parser.parse_known_args()
         args = argsv[0]
-        if args is not None and args.options is not None and not args.options.upper().startswith("T"):
+        if args is not None and args.options is not None and not str(args.options).upper().startswith("T"):
             resetConfigToDefault(force=True)
         
         if "PKDevTools_Default_Log_Level" in os.environ.keys():
-            if args is None or (args is not None and args.options is not None and "|" not in args.options):
+            if args is None or (args is not None and args.options is not None and "|" not in str(args.options)):
                 del os.environ['PKDevTools_Default_Log_Level']
         
         config_manager.logsEnabled = False

@@ -1135,7 +1135,7 @@ class menus:
 
 
     def find(self, key=None):
-        if key is not None:
+        if key is not None and len(str(key)) > 0:
             try:
                 return self.menuDict[str(key).upper()]
             except KeyboardInterrupt: # pragma: no cover
