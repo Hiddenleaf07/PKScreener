@@ -289,7 +289,7 @@ jobs:
         
         echo "Created .env.dev file with secrets"
         echo `pwd`
-        cp .env.dev /home/runner/work/PKScreener/PKScreener/
+        cp .env.dev /home/runner/work/PKScreener/PKScreener/pkscreener/.env.dev
         ls -l
 
     - name: Run Telegram bot on Windows
