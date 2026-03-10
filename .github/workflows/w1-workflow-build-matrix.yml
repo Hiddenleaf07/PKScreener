@@ -112,34 +112,34 @@ jobs:
           - os: windows-latest
             TARGET: Windows
             CMD_BUILD: |
-              pyinstaller --onefile \
-                --add-data="README.md:." \
-                --add-data="LICENSE:." \
-                --add-data="docs\LICENSE-Others:." \
-                --add-data="Disclaimer.txt:." \
-                --icon=screenshots\icon.ico \
-                --hidden-import cmath \
-                --hidden-import talib.stream \
-                --hidden-import numpy \
-                --hidden-import pandas \
-                --hidden-import alive_progress \
-                --hidden-import yfinance \
-                --hidden-import vectorbt \
-                --hidden-import PKDevTools \
-                --hidden-import PKNSETools \
-                --hidden-import scipy.special._cdflib \
-                --hidden-import chardet \
-                --hidden-import charset_normalizer \
-                --hidden-import pkg_resources \
-                --hidden-import pkg_resources.py2_warn \
-                --hidden-import setuptools \
-                --hidden-import apscheduler \
-                --hidden-import apscheduler.triggers.interval \
-                --hidden-import apscheduler.jobstores.base \
-                --hidden-import apscheduler.executors.pool \
-                --collect-all setuptools \
-                --collect-all pkg_resources \
-                --collect-all apscheduler \
+              pyinstaller --onefile `
+                --add-data="README.md;." `
+                --add-data="LICENSE;." `
+                --add-data="docs\LICENSE-Others;." `
+                --add-data="Disclaimer.txt;." `
+                --icon=screenshots\icon.ico `
+                --hidden-import cmath `
+                --hidden-import talib.stream `
+                --hidden-import numpy `
+                --hidden-import pandas `
+                --hidden-import alive_progress `
+                --hidden-import yfinance `
+                --hidden-import vectorbt `
+                --hidden-import PKDevTools `
+                --hidden-import PKNSETools `
+                --hidden-import scipy.special._cdflib `
+                --hidden-import chardet `
+                --hidden-import charset_normalizer `
+                --hidden-import pkg_resources `
+                --hidden-import pkg_resources.py2_warn `
+                --hidden-import setuptools `
+                --hidden-import apscheduler `
+                --hidden-import apscheduler.triggers.interval `
+                --hidden-import apscheduler.jobstores.base `
+                --hidden-import apscheduler.executors.pool `
+                --collect-all setuptools `
+                --collect-all pkg_resources `
+                --collect-all apscheduler `
                 pkscreener\pkscreenercli.py
             DEP_BUILD: |
               python3 -m pip install --upgrade pip
