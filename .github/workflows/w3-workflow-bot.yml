@@ -334,6 +334,9 @@ jobs:
         CI_PAT: ${{ secrets.CI_PAT }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        pip3 install setuptools
+        # Also install other potential missing dependencies
+        pip3 install chardet charset-normalizer
         echo "Starting bot at $(date)"
         echo "Bot will run in foreground with full output"
         cp /home/runner/work/PKScreener/PKScreener/pkscreener/.env.dev .env.dev
