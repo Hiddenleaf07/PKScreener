@@ -45,16 +45,33 @@ import logging
 import re
 import sys
 import threading
+# Complete mock for pkg_resources
+import warnings
 try:
     import pkg_resources
 except ImportError:
-    # Mock pkg_resources if missing
     from types import ModuleType
+    # Create a mock module
     mock_pkg_resources = ModuleType('pkg_resources')
-    mock_pkg_resources.require = lambda *args, **kwargs: None
-    mock_pkg_resources.get_distribution = lambda *args, **kwargs: None
+    # Define the exception
+    class DistributionNotFound(Exception):
+        pass
+    mock_pkg_resources.DistributionNotFound = DistributionNotFound
+    
+    # Define get_distribution
+    def mock_get_distribution(*args, **kwargs):
+        mock_dist = type('Distribution', (), {'version': '0.0.0'})
+        return mock_dist
+    mock_pkg_resources.get_distribution = mock_get_distribution
+    
+    # Define require (sometimes used)
+    def mock_require(*args, **kwargs):
+        return []
+    mock_pkg_resources.require = mock_require
+    
+    # Insert the mock
     sys.modules['pkg_resources'] = mock_pkg_resources
-    print("Warning: pkg_resources not found, using mock")
+    warnings.warn("pkg_resources not found, using complete mock")
 try:
     import thread
 except ImportError:

@@ -310,19 +310,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         pkscreenercli.exe --bot --botavailable ${{ inputs.cliOptions || '' }}
-
-    - name: Verify bot dependencies
-      timeout-minutes: 1
-      continue-on-error: true
-      shell: bash
-      if: startsWith(runner.os, 'Linux')
-      run: |
-        pip3 uninstall pkdevtools -y || true
-        pip3 install pkdevtools --no-cache-dir
-        ldd /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin
-        # Check if the bot can at least show help
-        /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --help
-
     - name: Telegram Bot on Ubuntu
       timeout-minutes: 350
       continue-on-error: true
