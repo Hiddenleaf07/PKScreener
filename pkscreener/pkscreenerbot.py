@@ -46,6 +46,16 @@ import re
 import sys
 import threading
 try:
+    import pkg_resources
+except ImportError:
+    # Mock pkg_resources if missing
+    from types import ModuleType
+    mock_pkg_resources = ModuleType('pkg_resources')
+    mock_pkg_resources.require = lambda *args, **kwargs: None
+    mock_pkg_resources.get_distribution = lambda *args, **kwargs: None
+    sys.modules['pkg_resources'] = mock_pkg_resources
+    print("Warning: pkg_resources not found, using mock")
+try:
     import thread
 except ImportError:
     import _thread as thread
