@@ -201,7 +201,7 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
-                pkscreener\pkscreenercli.py
+                pkscreener/pkscreenercli.py
               mv /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.bin
               chmod +x /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.bin
             DEP_BUILD: |
@@ -254,7 +254,7 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
-                pkscreener\pkscreenercli.py
+                pkscreener/pkscreenercli.py
               mv /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.bin
               chmod +x /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.bin
             DEP_BUILD: |
@@ -307,7 +307,7 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
-                pkscreener\pkscreenercli.py
+                pkscreener/pkscreenercli.py
               mv /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.run
             DEP_BUILD: |
               brew install ta-lib
@@ -361,7 +361,7 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
-                pkscreener\pkscreenercli.py
+                pkscreener/pkscreenercli.py
               mv /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.run
             DEP_BUILD: |
               brew install ta-lib
