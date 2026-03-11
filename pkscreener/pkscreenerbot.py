@@ -537,8 +537,9 @@ def start(update: Update, context: CallbackContext, updatedResults=None, monitor
     else:
         reply_markup = None
 
+    is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
     if updatedResults is None:
-        cmdText = "\n/otp : To generate an OTP to login to PKScreener desktop console\n/check UPI_UTR_HERE_After_Making_Payment : To share transaction reference number to automatically enable subscription after making payment via UPI\n"
+        cmdText = f"\n/otp : To generate an OTP to login to PKScreener desktop console\n{'' if not is_subscription_enabled else '/check UPI_UTR_HERE_After_Making_Payment : To share transaction reference number to automatically enable subscription after making payment via UPI\n'}"
         for cmd in cmds:
             if cmd.menuKey not in TOP_LEVEL_MARKUP_SKIP_MENUS:
                 cmdText = f"{cmdText}\n{cmd.commandTextKey()} : {cmd.commandTextLabel()}"
@@ -553,7 +554,7 @@ def start(update: Update, context: CallbackContext, updatedResults=None, monitor
         menuText = f"{menuText}\nClick /start if you want to restart the session."
     else:
         if not isUserSubscribed(user):
-            updatedResults = f"Thank you for choosing Intraday Monitor!\nThis scan request is, however, protected and is only available to premium subscribers. It seems like you are not subscribed to the paid/premium subscription to PKScreener.\nPlease checkout all premium options by sending out a request:\n/OTP\nFor basic/unpaid users, you can try out the following:\n/X_0 StockCode1,StockCode2,etc.\n/X_N\n/X_1"
+            updatedResults = f"Thank you for choosing Intraday Monitor!\n{'' if not is_subscription_enabled else 'This scan request is, however, protected and is only available to premium subscribers. It seems like you are not subscribed to the paid/premium subscription to PKScreener.\nPlease checkout all premium options by sending out a request:\n/OTP\nFor basic/unpaid users, you can try out the following:\n/X_0 StockCode1,StockCode2,etc.\n/X_N\n/X_1'}"
             updatedResults = f"{updatedResults}\nClick /start if you want to restart the session."
         chosenBotMenuOption = f"{chosenBotMenuOption}\nInt. Monitor. MonitorIndex:{monitorIndex}\n{updatedResults}"
         menuText = updatedResults
@@ -1672,7 +1673,8 @@ def launchScreener(options, user, context, optionChoices, update):
             PKAnalyticsService().send_event("bot_scan",{"bot_userid":str(user.id), "bot_username":str(user.username),"scan_id":str(scanRequest),"user_subscribed":userSubs})
         except Exception as e:
             pass
-        if not userSubs:
+        is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
+        if is_subscription_enabled and not userSubs:
             basicSubscriptions = ["X_0","X_N","X_1_"]
             isBasicScanRequest = False
             for basicSub in basicSubscriptions:
@@ -1680,7 +1682,7 @@ def launchScreener(options, user, context, optionChoices, update):
                     isBasicScanRequest = True
                     break
             if not isBasicScanRequest:
-                responseText = f"Thank you for choosing {scanRequest}!\nThis {'Backtest' if str(scanRequest).startswith('B') else 'Scan'} request is, however, protected and is only available to premium subscribers. It seems like you are not subscribed to the paid/premium subscription to PKScreener.\nPlease checkout all premium options by sending out a request:\n/OTP\nFor basic/unpaid users, you can try out the following:\n/X_0 StockCode1,StockCode2,etc.\n/X_N\n/X_1\n"
+                responseText = f"Thank you for choosing {scanRequest}!\n This {'Backtest' if str(scanRequest).startswith('B') else 'Scan'} request is, however, protected and is only available to premium subscribers. It seems like you are not subscribed to the paid/premium subscription to PKScreener.\nPlease checkout all premium options by sending out a request:\n/OTP\nFor basic/unpaid users, you can try out the following:\n/X_0 StockCode1,StockCode2,etc.\n/X_N\n/X_1\n"
                 if update is not None and update.message is not None:
                     update.message.reply_text(sanitiseTexts(responseText),reply_markup=default_markup(user=user),parse_mode="HTML")
                 else:
