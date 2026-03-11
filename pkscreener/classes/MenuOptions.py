@@ -29,6 +29,7 @@ from PKDevTools.classes.log import default_logger
 from PKDevTools.classes.OutputControls import OutputControls
 import pkscreener.classes.ConfigManager as ConfigManager
 from pkscreener.classes.OtaUpdater import OTAUpdater
+from PKDevTools.classes.Environment import PKEnvironment
 from pkscreener.classes import VERSION
 
 configManager = ConfigManager.tools()
@@ -741,6 +742,7 @@ class menus:
         dictToRenderOnTheirOwnLine = {key: rawDictionary[key] for key in renderExceptionKeys}
         keysToRender = set(dictToRender) - set(dictToRenderOnTheirOwnLine)
         dictToRender = {key: rawDictionary[key] for key in keysToRender}
+        is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
         if len(dictToRender.keys()) > 0:
             maxLengthOfItem = len(max(dictToRender.values(), key=len)) + 4
         else:
@@ -756,7 +758,7 @@ class menus:
                     continue
                 menuText = menuText.format(f"{colorText.WARN}{substitutes[substituteIndex]}{colorText.END}")
                 substituteIndex += 1
-            menuText = f"{menuText if str(key) not in subOnly else f'{menuText}(₹/$)'}"
+            menuText = f"{menuText if str(key) not in subOnly else (f'{menuText}(₹/$)' if is_subscription_enabled else f'{menuText}')}"
             menuText = menuText.ljust(maxLengthOfItem+7) if key in dictToRender.keys() else menuText
             m.create(
                 str(key).upper(), menuText, level=self.level, parent=parent
