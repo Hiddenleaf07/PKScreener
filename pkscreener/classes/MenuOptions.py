@@ -721,6 +721,8 @@ class menus:
         self.level = 0
         self.menuDict = {}
         self.strategyNames = []
+        self.is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
+        self.addl_option_text = " Options with (₹/$) are paid/premium." if self.is_subscription_enabled else ""
 
     def fromDictionary(
         self,
@@ -742,7 +744,7 @@ class menus:
         dictToRenderOnTheirOwnLine = {key: rawDictionary[key] for key in renderExceptionKeys}
         keysToRender = set(dictToRender) - set(dictToRenderOnTheirOwnLine)
         dictToRender = {key: rawDictionary[key] for key in keysToRender}
-        is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
+        
         if len(dictToRender.keys()) > 0:
             maxLengthOfItem = len(max(dictToRender.values(), key=len)) + 4
         else:
@@ -758,7 +760,7 @@ class menus:
                     continue
                 menuText = menuText.format(f"{colorText.WARN}{substitutes[substituteIndex]}{colorText.END}")
                 substituteIndex += 1
-            menuText = f"{menuText if str(key) not in subOnly else (f'{menuText}(₹/$)' if is_subscription_enabled else f'{menuText}')}"
+            menuText = f"{menuText if str(key) not in subOnly else (f'{menuText}(₹/$)' if self.is_subscription_enabled else f'{menuText}')}"
             menuText = menuText.ljust(maxLengthOfItem+7) if key in dictToRender.keys() else menuText
             m.create(
                 str(key).upper(), menuText, level=self.level, parent=parent
@@ -966,7 +968,7 @@ class menus:
                                                          defaultMenu="1",
                                                          skip=skip, 
                                                          asList=asList,
-                                                         optionText="  [+] Options with (₹/$) are paid/premium. Select a scanner:",
+                                                         optionText=f"  [+]{self.addl_option_text} Select a scanner:",
                                                          renderStyle=renderStyle
                                                             if renderStyle is not None
                                                             else MenuRenderStyle.TWO_PER_ROW, 
@@ -981,7 +983,7 @@ class menus:
                                                          defaultMenu=str(len(indexKeys)),
                                                          skip=skip, 
                                                          asList=asList,
-                                                         optionText="  [+] Options with (₹/$) are paid/premium. Select a sectoral index:",
+                                                         optionText=f"  [+]{self.addl_option_text} Select a sectoral index:",
                                                          renderStyle=renderStyle
                                                             if renderStyle is not None
                                                             else MenuRenderStyle.TWO_PER_ROW, 
@@ -995,7 +997,7 @@ class menus:
                                                          defaultMenu="9",
                                                          skip=skip, 
                                                          asList=asList,
-                                                         optionText="  [+] Options with (₹/$) are paid/premium. Select a Criterion for Stock Screening: ",
+                                                         optionText=f"  [+]{self.addl_option_text} Select a Criterion for Stock Screening: ",
                                                          renderStyle=renderStyle
                                                             if renderStyle is not None
                                                             else MenuRenderStyle.TWO_PER_ROW, 
@@ -1012,7 +1014,7 @@ class menus:
                                                          defaultMenu="3",
                                                          skip=skip, 
                                                          asList=asList,
-                                                         optionText="  [+] Options with (₹/$) are paid/premium. Select an option: ",
+                                                         optionText=f"  [+]{self.addl_option_text} Select an option: ",
                                                          renderStyle=renderStyle
                                                             if renderStyle is not None
                                                             else MenuRenderStyle.STANDALONE, 
@@ -1147,7 +1149,8 @@ class menus:
                 return None
         return None
 
-    def renderMenuFromDictionary(self, dict={},exceptionKeys=[],coloredValues=[], optionText="  [+] Options with (₹/$) are paid/premium. Select a menu option:", defaultMenu="0", asList=False, renderStyle=None, parent=None, skip=None, substitutes=[],checkUpdate=False,subOnly=[]):
+    def renderMenuFromDictionary(self, dict={},exceptionKeys=[],coloredValues=[], optionText=f"  [+] Select a menu option:", defaultMenu="0", asList=False, renderStyle=None, parent=None, skip=None, substitutes=[],checkUpdate=False,subOnly=[]):
+        optionText = optionText.replace("[+]", f"[+]{self.addl_option_text}")
         menuText = self.fromDictionary(
             dict,
             renderExceptionKeys=exceptionKeys,
