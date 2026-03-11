@@ -385,6 +385,9 @@ def isInMarketHours():
     return not PKDateUtilities.isTodayHoliday()[0] and now >= marketStartTime and now <= marketCloseTime
 
 def initializeIntradayTimer():
+    is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
+    if not is_subscription_enabled:
+        return
     try:
         if (not PKDateUtilities.isTodayHoliday()[0]):
             now = PKDateUtilities.currentDateTime()
@@ -597,6 +600,9 @@ def launchIntradayMonitor():
     global int_timer
     if int_timer is not None:
         int_timer.cancel()
+    is_subscription_enabled = bool(int(PKEnvironment().SUBSCRIPTION_ENABLED))
+    if not is_subscription_enabled:
+        return None, None
     filePath = os.path.join(Archiver.get_user_data_dir(), "monitor_outputs")
     result_outputs = ""
     if (PKDateUtilities.isTradingTime() and not PKDateUtilities.isTodayHoliday()[0]) or ("PKDevTools_Default_Log_Level" in os.environ.keys() or sys.argv[0].endswith(".py")):
@@ -1030,12 +1036,13 @@ def XScanners(update: Update, context: CallbackContext) -> str:
     if data.startswith("MI"): # Intraday monitor
         monitorIndex = int(data.split("_")[1])
         result_outputs, filePath = launchIntradayMonitor()
-        filePath = f"{filePath}_{monitorIndex}.txt"
+        if filePath is not None:
+            filePath = f"{filePath}_{monitorIndex}.txt"
         monitorIndex += 1
         if monitorIndex >= configManager.maxDashboardWidgetsPerRow*configManager.maxNumResultRowsInMonitor:
             monitorIndex = 0
         try:
-            if os.path.exists(filePath):
+            if filePath is not None and os.path.exists(filePath):
                 f = open(filePath, "r")
                 result_outputs = f.read()
                 f.close()
@@ -1848,24 +1855,31 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 f"Stopping due to conflict after running for {timeSinceStarted.total_seconds()/60} minutes."
             )
             try:
-                global int_timer
+                global int_timer, _updater
                 if int_timer is not None:
                     int_timer.cancel()
+                if _updater is not None:
+                    _updater.stop() # This will unblock idle()
+                if monitor_proc is not None:
+                    monitor_proc.kill()
             except: # pragma: no cover
                 pass
                 #https://github.com/python-telegram-bot/python-telegram-bot/issues/209
                 # if _updater is not None:
                 #     _updater.stop() # Calling stop from within a handler will cause deadlock
-            try:
-                # context.dispatcher.stop()
-                thread.interrupt_main() # causes ctrl + c
-                # sys.exit(0)
-            except RuntimeError:
-                pass
-            except SystemExit:
-                thread.interrupt_main()
             finally:
-                sys.exit(0)
+                # Force exit after stopping
+                try:
+                    # context.dispatcher.stop()
+                    thread.interrupt_main() # causes ctrl + c
+                    os._exit(0)  # Force exit immediately
+                    # sys.exit(0)
+                except RuntimeError:
+                    pass
+                except SystemExit:
+                    thread.interrupt_main()
+                finally:
+                    sys.exit(0)
         else:
             print("Other instance running!")
             # context.application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -2584,11 +2598,16 @@ def runpkscreenerbot(availability=True) -> None:
     # Start the Bot
     application.start_polling()
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
-    application.idle()
-
+    try:
+        # Run the bot until you press Ctrl-C or the process receives SIGINT,
+        # SIGTERM or SIGABRT. This should be used most of the time, since
+        # start_polling() is non-blocking and will stop the bot gracefully.
+        application.idle()
+    except (KeyboardInterrupt, SystemExit):
+        sys.exit(0)
+    except Exception as e:
+        print(f"Exception in runpkscreenerbot: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     runpkscreenerbot()
