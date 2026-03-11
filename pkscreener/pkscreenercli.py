@@ -50,10 +50,10 @@ os.environ["AUTOGRAPH_VERBOSITY"] = "0"
 import multiprocessing
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    logging.getLogger("tensorflow").setLevel(logging.ERROR)
-except Exception:
-    pass
+# try:
+#     logging.getLogger("tensorflow").setLevel(logging.ERROR)
+# except Exception:
+#     pass
 
 from time import sleep
 
