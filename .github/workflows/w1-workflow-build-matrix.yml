@@ -201,6 +201,8 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
+                --hidden-import libsql \
+                --collect-all libsql \
                 pkscreener/pkscreenercli.py
               mv /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.bin
               chmod +x /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.bin
@@ -214,6 +216,7 @@ jobs:
               pip3 uninstall -y PKDevTools
               pip3 install -r requirements.txt
               pip3 install -r requirements-dev.txt
+              pip3 install libsql
               pip3 install ta-lib==0.6.4
               pip3 install .
             TEST_BUILD: |
@@ -254,6 +257,8 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
+                --hidden-import libsql \
+                --collect-all libsql \
                 pkscreener/pkscreenercli.py
               mv /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.bin
               chmod +x /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.bin
@@ -268,6 +273,7 @@ jobs:
               pip3 install -r requirements.txt
               pip3 install -r requirements-dev.txt
               pip3 install ta-lib==0.6.4
+              pip3 install libsql
               pip3 install .
             TEST_BUILD: |
               /home/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.bin --testbuild
@@ -307,6 +313,8 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
+                --hidden-import libsql \
+                --collect-all libsql \
                 pkscreener/pkscreenercli.py
               mv /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.run
             DEP_BUILD: |
@@ -322,6 +330,7 @@ jobs:
               export TA_LIBRARY_PATH="$(brew --prefix ta-lib)/lib"
               #python3 -m pip install -U ta-lib
               python3 -m pip install --no-cache-dir ta-lib==0.6.4
+              pip3 install libsql
               pip3 install .
             TEST_BUILD: |
               /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_arm64.run -e -a Y -o H
@@ -361,6 +370,8 @@ jobs:
                 --collect-all setuptools \
                 --collect-all pkg_resources \
                 --collect-all apscheduler \
+                --hidden-import libsql \
+                --collect-all libsql \
                 pkscreener/pkscreenercli.py
               mv /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.run
             DEP_BUILD: |
@@ -376,6 +387,7 @@ jobs:
               export TA_LIBRARY_PATH="$(brew --prefix ta-lib)/lib"
               #python3 -m pip install -U ta-lib
               python3 -m pip install --no-cache-dir ta-lib==0.6.4
+              pip3 install libsql
               pip3 install .
             TEST_BUILD: |
               /Users/runner/work/PKScreener/PKScreener/dist/pkscreenercli_x64.run --testbuild
