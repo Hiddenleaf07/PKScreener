@@ -1840,7 +1840,8 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 pass
             except SystemExit:
                 thread.interrupt_main()
-            # sys.exit(0)
+            finally:
+                sys.exit(0)
         else:
             print("Other instance running!")
             # context.application.run_polling(allowed_updates=Update.ALL_TYPES)
