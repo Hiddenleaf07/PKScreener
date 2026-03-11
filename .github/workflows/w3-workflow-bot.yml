@@ -321,7 +321,7 @@ jobs:
         CI_PAT: ${{ secrets.CI_PAT }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        pip3 install setuptools
+        pip3 install setuptools libsql
         # Also install other potential missing dependencies
         pip3 install chardet charset-normalizer
         echo "Starting bot at $(date)"
