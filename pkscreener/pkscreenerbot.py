@@ -335,8 +335,8 @@ int_timer = None
 _updater = None
 QR_CODE_PAYMENT_LINK="upi://pay?pa=PKSCREENER@APL&pn=PKSCREENER&tn=undefined&am=undefined"
 
-TOP_LEVEL_SCANNER_MENUS = ["X", "B", "MI","DV", "P"] # 
-TOP_LEVEL_SCANNER_SKIP_MENUS = ["M", "S", "F", "G", "C", "T", "D", "I", "E", "U", "L", "Z", "P"] # Last item will be skipped.
+TOP_LEVEL_SCANNER_MENUS = ["X", "B","DV", "P"] # 
+TOP_LEVEL_SCANNER_SKIP_MENUS = ["M", "MI", "S", "F", "G", "C", "T", "D", "I", "E", "U", "L", "Z", "P"] # Last item will be skipped.
 TOP_LEVEL_MARKUP_SKIP_MENUS = TOP_LEVEL_SCANNER_SKIP_MENUS[:len(TOP_LEVEL_SCANNER_SKIP_MENUS)-1]
 TOP_LEVEL_MARKUP_SKIP_MENUS.extend(["X","P","B"])
 INDEX_SKIP_MENUS_1_To_4 = ["W","E","M","Z","0","5","6","7","8","9","10","11","12","13","14","S","15"]

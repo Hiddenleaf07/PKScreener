@@ -56,18 +56,18 @@ userDemoMenuDict = {
 }
 
 level0MenuDict = {
-    "F": "Find a stock in scanners",
-    "M": "Monitor Intraday",
+    # "F": "Find a stock in scanners",
+    # "M": "Monitor Intraday",
     # "S": "Strategies",
     # "B": "Backtests",
     # "G": "Growth of 10k",
-    "C": "Analyse morning vs close outcomes",
+    # "C": "Analyse morning vs close outcomes",
     "P": "Piped Scanners",
     "D": "Data Downloads",
     "X": "Scanners",
-    "T": "~",
-    "E": "Edit user configuration",
-    "Y": "View your user configuration",
+    # "T": "~",
+    # "E": "Edit user configuration",
+    # "Y": "View your user configuration",
     "U": "Check for software update",
     "L": "Collect Logs for Debugging",
     "H": "About PKScreener",
@@ -297,26 +297,26 @@ level1_S_MenuDict = {
 INDICES_MAP = {}
 
 level1_X_MenuDict = {
-    "0": "Screen stocks by the stock names",
-    "1": "Nifty 50          ",
+    # "0": "Screen stocks by the stock names",
+    # "1": "Nifty 50          ",
     "N": "Nifty Prediction using Artifical Intelligence (Use for Gap-Up/Gap-Down/BTST/STBT)",
-    "S": "Sectoral Indices",
-    "E": "Live Index Scan : 5 EMA for Intraday",
-    "W": "Screen stocks from my own Watchlist",
-    "2": "Nifty Next 50     ",
-    "3": "Nifty 100         ",
-    "4": "Nifty 200         ",
-    "5": "Nifty 500         ",
-    "6": "Nifty Smallcap 50 ",
-    "7": "Nifty Smallcap 100",
-    "8": "Nifty Smallcap 250",
-    "9": "Nifty Midcap 50   ",
-    "10": "Nifty Midcap 100",
-    "11": "Nifty Midcap 150",
+    # "S": "Sectoral Indices",
+    # "E": "Live Index Scan : 5 EMA for Intraday",
+    # "W": "Screen stocks from my own Watchlist",
+    # "2": "Nifty Next 50     ",
+    # "3": "Nifty 100         ",
+    # "4": "Nifty 200         ",
+    # "5": "Nifty 500         ",
+    # "6": "Nifty Smallcap 50 ",
+    # "7": "Nifty Smallcap 100",
+    # "8": "Nifty Smallcap 250",
+    # "9": "Nifty Midcap 50   ",
+    # "10": "Nifty Midcap 100",
+    # "11": "Nifty Midcap 150",
     "12": "Nifty (All Stocks)",
-    "13": "Newly Listed (IPOs in last 1 Year)           ",
-    "14": "F&O Stocks Only", #Discontinued:  https://nsearchives.nseindia.com/content/circulars/FAOP61157.pdf
-    "15": "NASDAQ",
+    # "13": "Newly Listed (IPOs in last 1 Year)           ",
+    # "14": "F&O Stocks Only", #Discontinued:  https://nsearchives.nseindia.com/content/circulars/FAOP61157.pdf
+    # "15": "NASDAQ",
 
     "M": "Back to the Top/Main menu",
     "Z": "Exit (Ctrl + C)",
@@ -849,7 +849,7 @@ class menus:
         if selectedMenu is None and self.level == 0:
             # Top level Application Main menu
             return self.renderMenuFromDictionary(dict=level0MenuDict,
-                                                 exceptionKeys=["X","T", "E", "U", "Z", "L", "D", "P"],
+                                                 exceptionKeys=["X", "U", "Z", "L", "D", "P"], # "T", "E"
                                                  coloredValues=(["P","X"] if not asList else []),
                                                  defaultMenu="P",
                                                  skip=skip, 
@@ -857,7 +857,7 @@ class menus:
                                                  renderStyle=renderStyle, 
                                                  parent=selectedMenu,
                                                  checkUpdate=True,
-                                                 subOnly=["F", "M", "S", "B", "G", "C", "P", "D"])
+                                                 subOnly=["S", "B", "G", "P", "D"]) # "F", "M", "C"
         elif selectedMenu is not None:
             if selectedMenu.menuKey == "S" and selectedMenu.level == 0:
                 strategies = self.strategyNames
@@ -915,8 +915,8 @@ class menus:
                 else:
                     # sub-menu of the top level main selected menu
                     return self.renderMenuFromDictionary(dict=level1_X_MenuDict,
-                                                         exceptionKeys=["E", "M", "S", "15"],
-                                                         coloredValues=(["15",str(configManager.defaultIndex)] if not asList else []),
+                                                         exceptionKeys= [], #["E", "M", "S", "15"],
+                                                         coloredValues= [], #(["15",str(configManager.defaultIndex)] if not asList else []),
                                                          defaultMenu=str(configManager.defaultIndex),
                                                          skip=skip, 
                                                          asList=asList, 
