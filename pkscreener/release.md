@@ -2,7 +2,7 @@
 
 ## What's New?
 1. [v0.46.20260311.836] release
-* Integration with new data provider for period=day
+* Integration with new data provider!
 
 ## Older Releases
 * [https://github.com/pkjmesra/PKScreener/releases] : Discarded to save on storage costs!
