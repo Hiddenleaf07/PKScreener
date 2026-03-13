@@ -1,8 +1,8 @@
 name: 0. Run PKBrokers pickle save
 on:
   workflow_dispatch:  # Allows manual triggering
-  schedule:
-    - cron: '0 10 * * 1-6'  # Run at 8 AM UTC every weekday (Monday-Friday)
+  # schedule:
+  #   - cron: '0 10 * * 1-6'  # Run at 8 AM UTC every weekday (Monday-Friday)
   # Removed push trigger to prevent overwriting good pkl files from History Data Child workflow
   # push:
   #   branches: [ actions-data-download ]

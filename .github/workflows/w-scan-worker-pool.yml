@@ -4,9 +4,9 @@ name: Scan Worker Pool
 # This workflow keeps workers warm and ready to process scan requests instantly.
 
 on:
-  schedule:
-    # Keep workers warm by running every 50 minutes
-    - cron: '*/50 * * * *'
+  # schedule:
+  #   # Keep workers warm by running every 50 minutes
+  #   - cron: '*/50 * * * *'
   workflow_dispatch:
     inputs:
       scan_params:
