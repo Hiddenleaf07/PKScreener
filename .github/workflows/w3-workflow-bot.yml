@@ -194,7 +194,7 @@ jobs:
         CHAT_ID_DEV : ${{secrets.CHAT_ID_DEV}}
         TOKEN_DEV : ${{secrets.TOKEN_DEV}}
         CHAT_IDADMIN_DEV : ${{secrets.CHAT_IDADMIN_DEV}}
-        CHAT_ID: ${{ secrets.CHAT_ID_PROD }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
         TOKEN: ${{ secrets.TOKEN }}
         chat_idADMIN: ${{ secrets.chat_idADMIN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
