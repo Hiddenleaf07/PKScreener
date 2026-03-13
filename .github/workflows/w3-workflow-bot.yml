@@ -61,8 +61,8 @@ on:
         required: false
         default: 'schedule'
         type: string
-  schedule:
-    - cron: '30 */4 * * *'
+  # schedule:
+  #   - cron: '30 */4 * * *'
 
 # Add permissions for repository dispatch
 permissions:
