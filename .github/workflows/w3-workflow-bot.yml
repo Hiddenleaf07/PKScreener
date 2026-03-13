@@ -56,20 +56,18 @@ on:
         required: false
         type: string
         default: 'x64'
-  # push:
-  #   branches: [ main ]
-    # workflow_run:
-    #   workflows: ["0. New Features - Tests"]
-    #   types:
-    #     - completed
-    # workflow_call:
-    #   inputs:
-    #     branch-name:
-    #       required: true
-    #       type: string
-    #       default: 'new-features'
+      triggered_by:
+        description: 'What triggered this run'
+        required: false
+        default: 'schedule'
+        type: string
   schedule:
     - cron: '30 */4 * * *'
+
+# Add permissions for repository dispatch
+permissions:
+  contents: write
+  actions: write
 
 jobs:
 
@@ -77,8 +75,17 @@ jobs:
     # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
     runs-on: ${{ inputs.runson || 'ubuntu-latest' }} #ubuntu-latest #windows-latest ubuntu-24.04-arm, ubuntu-22.04-arm
     permissions: write-all
+    env:
+      TRIGGERED_BY: ${{ github.event.inputs.triggered_by || 'schedule' }}
 
     steps:
+    - name: Log trigger source
+      run: |
+        echo "🎯 Workflow triggered by: ${{ env.TRIGGERED_BY }}"
+        echo "🎯 Run ID: ${{ github.run_id }}"
+        echo "🎯 Run number: ${{ github.run_number }}"
+        echo "🎯 Run attempt: ${{ github.run_attempt }}"
+
     - uses: actions/checkout@v4
       with:
         ref: ${{ inputs.branch-name }}
@@ -90,32 +97,12 @@ jobs:
       with:
         python-version: ${{ inputs.targetPythonVersion || 3.12 }}
 
-    # - name: Restore Dependencies from Windows Cache
-    #   if: startsWith(runner.os, 'Windows')
-    #   uses: actions/cache@v4
-    #   with:
-    #     path: ~\AppData\Local\pip\Cache
-    #     key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-pip-
-  
     - name: Cache TA-Lib
       uses: actions/cache@v4
       with:
         path: |
           ~/talib
         key: ${{ runner.os }}-talib-${{ hashFiles('**/install-talib.sh') }}
-        
-    # - name: Restore Dependencies from Ubuntu Cache
-    #   if: startsWith(runner.os, 'Linux')
-    #   uses: actions/cache@v4
-    #   id: cache-venv  # name for referring later
-    #   with:
-    #     path: ./.venv/  # what we cache: the virtualenv
-    #     # The cache key depends on requirements.txt
-    #     key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements*.txt') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-venv-
 
     - name: Install TA-Lib for Windows
       if: ${{ inputs.installtalib == 'Y' && startsWith(runner.os, 'Windows') }}
@@ -135,7 +122,6 @@ jobs:
         fi
 
     - name: Install TA-Lib for Linux
-      # if: steps.cache-talib.outputs.cache-hit != 'true'
       if: ${{ inputs.installtalib == 'Y' && startsWith(runner.os, 'Linux') }}
       run: |
         cd .github/dependencies/
@@ -150,27 +136,6 @@ jobs:
       run: |
         pip3 install requests
         python3 .github/workflows/githubutilities.py -d
-
-    # Phase 1: Binary caching to reduce scan latency by 30-60s
-    # - name: Cache PKScreener Binary (Linux)
-    #   if: startsWith(runner.os, 'Linux')
-    #   uses: actions/cache@v4
-    #   id: binary-cache-linux
-    #   with:
-    #     path: /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin
-    #     key: ${{ runner.os }}-pkscreener-bin-${{ steps.releaseurlsetter.outputs.VERSION }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-pkscreener-bin-
-
-    # - name: Cache PKScreener Binary (Windows)
-    #   if: startsWith(runner.os, 'Windows')
-    #   uses: actions/cache@v4
-    #   id: binary-cache-windows
-    #   with:
-    #     path: pkscreenercli.exe
-    #     key: ${{ runner.os }}-pkscreener-bin-${{ steps.releaseurlsetter.outputs.VERSION }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-pkscreener-bin-
 
     - name: Download latest executable on Windows
       shell: cmd
@@ -221,7 +186,8 @@ jobs:
           echo "ERROR: Invalid binary"
           file "$BINARY_PATH"
           exit 1
-        fi        
+        fi
+
     - name: Configure env.dev file
       shell: bash
       env:
@@ -302,7 +268,7 @@ jobs:
 
     - name: Run Telegram bot on Windows
       shell: cmd
-      timeout-minutes: 300
+      timeout-minutes: 290  # Slightly less than job timeout to allow cleanup
       continue-on-error: true
       if: startsWith(runner.os, 'Windows')
       env:
@@ -312,8 +278,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         pkscreenercli.exe --bot --botavailable ${{ inputs.cliOptions || '' }}
+
     - name: Telegram Bot on Ubuntu
-      timeout-minutes: 300
+      timeout-minutes: 290  # Slightly less than job timeout to allow cleanup
       continue-on-error: true
       shell: bash
       if: startsWith(runner.os, 'Linux')
@@ -339,8 +306,50 @@ jobs:
         /home/runner/work/PKScreener/PKScreener/pkscreenercli_x64.bin --bot --botavailable ${{ inputs.cliOptions || '' }} 2>&1 | tee bot_output.log
         
         # This line will only execute after the bot exits
-        echo "Bot exited with code $? at $(date)"
+        BOT_EXIT_CODE=${PIPESTATUS[0]}
+        echo "Bot exited with code $BOT_EXIT_CODE at $(date)"
+        
+        # Save exit code for potential use
+        echo "BOT_EXIT_CODE=$BOT_EXIT_CODE" >> $GITHUB_ENV
 
+    - name: Self-trigger for 24x7 continuity
+      if: always() && !cancelled()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "🔄 Self-triggering workflow for 24x7 continuity..."
+        
+        # Get current timestamp
+        CURRENT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        echo "Current time: $CURRENT_TIME"
+        
+        # Check if bot exited with an error (optional - you can still trigger even on error)
+        if [ -n "$BOT_EXIT_CODE" ] && [ "$BOT_EXIT_CODE" -ne 0 ]; then
+          echo "⚠️ Bot exited with code $BOT_EXIT_CODE, but still triggering next run for continuity"
+        fi
+        
+        # Trigger the workflow using repository dispatch
+        curl -L \
+          -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/w3-workflow-bot.yml/dispatches \
+          -d '{
+            "ref": "main",
+            "inputs": {
+              "branch-name": "${{ github.event.inputs.branch-name || 'main' }}",
+              "installtalib": "${{ github.event.inputs.installtalib || 'N' }}",
+              "targetPythonVersion": "${{ github.event.inputs.targetPythonVersion || '3.12' }}",
+              "runson": "${{ github.event.inputs.runson || 'ubuntu-latest' }}",
+              "cliOptions": "${{ github.event.inputs.cliOptions || '-a Y -l' }}",
+              "targetArch": "${{ github.event.inputs.targetArch || 'x64' }}",
+              "triggered_by": "self_trigger_after_${{ github.run_id }}"
+            }
+          }'
+        
+        echo "✅ Self-trigger initiated successfully"
+        echo "⏱️  Next run should start within 1-2 minutes"
 
     - name: Delete this repo workflow run
       shell: bash
