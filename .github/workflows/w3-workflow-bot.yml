@@ -69,7 +69,7 @@ on:
     #       type: string
     #       default: 'new-features'
   schedule:
-    - cron: '59 * * * *'
+    - cron: '30 */4 * * *'
 
 jobs:
 
@@ -302,7 +302,7 @@ jobs:
 
     - name: Run Telegram bot on Windows
       shell: cmd
-      timeout-minutes: 350
+      timeout-minutes: 300
       continue-on-error: true
       if: startsWith(runner.os, 'Windows')
       env:
@@ -313,7 +313,7 @@ jobs:
       run: |
         pkscreenercli.exe --bot --botavailable ${{ inputs.cliOptions || '' }}
     - name: Telegram Bot on Ubuntu
-      timeout-minutes: 90
+      timeout-minutes: 300
       continue-on-error: true
       shell: bash
       if: startsWith(runner.os, 'Linux')
@@ -344,42 +344,10 @@ jobs:
 
     - name: Delete this repo workflow run
       shell: bash
+      if: always()
       run: |
         gh run list --status success --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
         gh run list --status cancelled --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
         gh run list --status completed --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
       env:
         GH_TOKEN : ${{secrets.GITHUB_TOKEN}}
-
-    - name: Delete original repo workflow runs
-      shell: bash
-      run: |
-        gh run list --status success --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
-        gh run list --status cancelled --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
-        gh run list --status completed --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
-      env:
-        GH_TOKEN : ${{secrets.GITHUB_TOKEN}}
-
-  # Delete_Workflow_Run:
-  #   runs-on: ubuntu-latest
-  #   needs: [Prod_Telegram_Bot]
-  #   name: Delete workflow run
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: main
-  #     - name: Delete this workflow run
-  #       if: startsWith(runner.os, 'Linux')
-  #       shell: bash
-  #       run: |
-  #         gh run list --status success --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
-  #         gh run list --status cancelled --limit 400 --json databaseId -q '.[].databaseId' | xargs -IID gh api "repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/actions/runs/ID" -X DELETE
-  #         # for id in $(gh run list --limit 100 --jq ".[] | select (.status == \"success\" ) | .databaseId" --json databaseId,status); do gh run delete $id; done
-  #         # for id in $(gh run list --limit 100 --jq ".[] | select (.status == \"cancelled\" ) | .databaseId" --json databaseId,status); do gh run delete $id; done
-  #         # for id in $(gh run list --limit 100 --jq ".[] | select (.status == \"failure\" ) | .databaseId" --json databaseId,status); do gh run delete $id; done
-  #         # for id in $(gh run list -w "CodeQL" --limit 100 --jq ".[] | select (.status == \"completed\" ) | .databaseId" --json databaseId,status); do gh run delete $id; done
-          
-  #         # Cancel runs queued or in_progress. See https://cli.github.com/manual/gh_run_list
-  #         # for id in $(gh run list -w "13. Backtest for Generic" --limit 100 --jq ".[] | select (.status == \"queued\" ) | .databaseId" --json databaseId,status); do gh run cancel $id; done 
-  #       env:
-  #         GH_TOKEN : ${{secrets.GITHUB_TOKEN}}
