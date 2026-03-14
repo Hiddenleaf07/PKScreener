@@ -52,7 +52,7 @@ jobs:
       - name: Configure .env.dev file for Prod
         shell: bash
         env:
-          CHAT_ID_PROD : ${{secrets.CHAT_ID_PROD}}
+          CHAT_ID_PROD : ${{secrets.CHAT_ID}}
           CHAT_ID_DEV : ${{secrets.CHAT_ID_DEV}}
           TOKEN_DEV : ${{secrets.TOKEN_DEV}}
           CHAT_IDADMIN_DEV : ${{secrets.CHAT_IDADMIN_DEV}}
