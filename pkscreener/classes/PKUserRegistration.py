@@ -67,6 +67,14 @@ class PKUserRegistration(SingletonMixin, metaclass=SingletonType):
         configManager.userID = ""
         configManager.setConfig(parser,default=True,showFileCreatedText=False)
 
+    @classmethod
+    def savedUserCreds(self):
+        configManager = tools()
+        configManager.getConfig(parser)
+        configManager.userID = str(PKUserRegistration().userID)
+        configManager.otp = str(PKUserRegistration().otp)
+        configManager.setConfig(parser,default=True,showFileCreatedText=False)
+
     @property
     def userID(self):
         return self._userID
@@ -98,6 +106,8 @@ class PKUserRegistration(SingletonMixin, metaclass=SingletonType):
             if not PKPikey.openFile(f"{PKUserRegistration().userID}.pdf",PKUserRegistration().otp):
                 PKUserRegistration.resetSavedUserCreds()
                 return False, ValidationResult.BadOTP
+            
+            PKUserRegistration.savedUserCreds()
             return True, ValidationResult.Success
         except: # pragma: no cover
             if "RUNNER" in os.environ.keys():

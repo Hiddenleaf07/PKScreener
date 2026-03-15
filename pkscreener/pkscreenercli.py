@@ -1153,6 +1153,7 @@ def pkscreenercli():
         
         # Validate premium user for system-launched
         from pkscreener.classes.PKUserRegistration import PKUserRegistration, ValidationResult
+        PKUserRegistration.populateSavedUserCreds()
         if args.systemlaunched and not PKUserRegistration.validateToken()[0]:
             result = PKUserRegistration.login()
             if result != ValidationResult.Success:
@@ -1206,7 +1207,8 @@ def pkscreenercli():
         except NameError:
             LoggedIn = False
         
-        if not LoggedIn and not args.telegram and not args.bot and not args.systemlaunched and not args.testbuild:
+        auth_not_required = LoggedIn or args.telegram or args.bot or args.systemlaunched or args.testbuild
+        if not auth_not_required:
             if not PKUserRegistration.login():
                 sys.exit(0)
             LoggedIn = True
