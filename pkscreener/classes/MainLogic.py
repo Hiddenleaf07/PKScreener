@@ -602,8 +602,8 @@ def _handle_log_menu(launcher: str):
     
     # Method 1: Using subprocess with environment passing (Recommended)
     env = os.environ.copy()
-    env['PKDEVTOOLS_DEBUG_ALL'] = '1'
-    env['PKDEVTOOLS_LOG_LEVEL'] = '10'
+    env['PK_DEBUG_ENABLED'] = '1'
+    env['PK_LOG_LEVEL'] = '10'
     import subprocess
     try:
         subprocess.run(
@@ -618,11 +618,11 @@ def _handle_log_menu(launcher: str):
     # Method 2: Using platform detection (Alternative)
     # if sys.platform == "win32":
     #     # Windows PowerShell/CMD syntax
-    #     cmd = f'set PKDEVTOOLS_DEBUG_ALL=1 && set PKDEVTOOLS_LOG_LEVEL=10 && {launcher} -a Y -l'
+    #     cmd = f'set PK_DEBUG_ENABLED=1 && set PK_LOG_LEVEL=10 && {launcher} -a Y -l'
     #     os.system(cmd)
     # else:
     #     # Unix-like (Linux/macOS)
-    #     cmd = f'export PKDEVTOOLS_DEBUG_ALL=1 && export PKDEVTOOLS_LOG_LEVEL=10 && {launcher} -a Y -l'
+    #     cmd = f'export PK_DEBUG_ENABLED=1 && export PK_LOG_LEVEL=10 && {launcher} -a Y -l'
     #     os.system(cmd)
     
 def _handle_fundamental_menu(
