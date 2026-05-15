@@ -167,7 +167,7 @@ except ImportError:
     # protobuf not installed, nothing to patch
     pass
 except Exception as e:
-    print(f"⚠️ Protobuf patch warning: {e}", file=sys.stderr)
+    default_logger().warning(f"⚠️ Protobuf patch warning: {e}", file=sys.stderr)
 
 from time import sleep
 
@@ -862,6 +862,8 @@ class ApplicationRunner:
         
         # Handle monitor mode
         if self.args.monitor:
+            import PKDevTools.classes.PKHalo as pkHalo
+            pkHalo.ENABLE_SPINNER = False   # Disable spinner globally
             self._setup_monitor_mode(cli_runner, refresh_data)
             monitor_option_org = MarketMonitor().currentMonitorOption()
             self.args.options = monitor_option_org
@@ -992,6 +994,8 @@ class ApplicationRunner:
             MarketMonitor().saveMonitorResultStocks(self.plain_results)
             if self.results is not None and len(monitor_option_org) > 0:
                 chosen_menu = self.args.pipedtitle if self.args.pipedtitle is not None else update_menu_hierarchy()
+                if self.db_timestamp is None:
+                    self.db_timestamp = PKDateUtilities.currentDateTime().strftime("%H:%M:%S")
                 MarketMonitor().refresh(
                     screen_df=self.results,
                     screenOptions=monitor_option_org,

@@ -61,7 +61,7 @@ from PKDevTools.classes.Telegram import (
 from PKNSETools.morningstartools.PKMorningstarDataFetcher import morningstarDataFetcher
 from PKNSETools.Nasdaq.PKNasdaqIndex import PKNasdaqIndexFetcher
 from tabulate import tabulate
-from halo import Halo
+from PKDevTools.classes.PKHalo import PKHalo
 
 import pkscreener.classes.ConfigManager as ConfigManager
 import pkscreener.classes.Fetcher as Fetcher

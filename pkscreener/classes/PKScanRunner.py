@@ -29,7 +29,7 @@ import threading
 import pandas as pd
 import multiprocessing
 from time import sleep
-from halo import Halo
+from PKDevTools.classes.PKHalo import PKHalo
 
 from PKDevTools.classes import Archiver
 from PKDevTools.classes.ColorText import colorText
@@ -582,7 +582,7 @@ class PKScanRunner:
         capture_result=False,
         log_args=False  # Set to True for debugging, False in production
     )
-    @Halo(text='  [+] Creating multiple processes for faster processing...', spinner='dots')
+    @PKHalo(text='  [+] Creating multiple processes for faster processing...', spinner='dots')
     def prepareToRunScan(menuOption, keyboardInterruptEvent, screenCounter, screenResultsCounter,
                          stockDictPrimary, stockDictSecondary, items, executeOption, userPassedArgs):
         """
@@ -735,7 +735,7 @@ class PKScanRunner:
             OutputControls().moveCursorUpLines(1)
 
     @exit_after(120)  # Should not remain stuck starting the multiprocessing clients beyond this time
-    @Halo(text='', spinner='dots')
+    @PKHalo(text='', spinner='dots')
     def startWorkers(consumers):
         """
         Start workers using the parallel method for faster startup.
@@ -752,7 +752,7 @@ class PKScanRunner:
             default_logger().debug(f"Parallel worker startup failed, falling back to sequential: {e}", exc_info=True)
             PKScanRunner.startWorkersSequential(consumers)
 
-    @Halo(text='', spinner='dots')
+    @PKHalo(text='', spinner='dots')
     def terminateAllWorkers(userPassedArgs, consumers, tasks_queue, testing=False):
         """
         Terminate all worker processes and clean up resources.
