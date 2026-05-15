@@ -602,6 +602,7 @@ class PKScreenerMain:
             PKAnalyticsService().send_event(f"D_{selDownloadOption.upper()}")
             sleep(2)
             os.system(f"{launcher} -a Y -e -d")
+            sys.exit(0)
         elif selDownloadOption.upper() == "I":
             OutputControls().printOutput(f"{colorText.GREEN}Launching PKScreener to Download intraday OHLC data. If it does not launch, please try with the following:{colorText.END}\n{colorText.FAIL}{launcher} -a Y -e -d -i 1m{colorText.END}\n{colorText.WARN}Press Ctrl + C to exit at any time.{colorText.END}")
             PKAnalyticsService().send_event(f"D_{selDownloadOption.upper()}")
