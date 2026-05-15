@@ -864,6 +864,7 @@ class ApplicationRunner:
         if self.args.monitor:
             self._setup_monitor_mode(cli_runner, refresh_data)
             monitor_option_org = MarketMonitor().currentMonitorOption()
+            self.args.options = monitor_option_org
         
         # Run the scan
         try:
