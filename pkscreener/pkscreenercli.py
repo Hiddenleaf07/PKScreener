@@ -1081,7 +1081,9 @@ def _exit_gracefully(config_manager, arg_parser):
         # Flush any pending analytics events
         try:
             from pkscreener.classes.PKAnalytics import PKAnalyticsService
+            from pkscreener.classes.PKScanRunner import PKScanRunner
             PKAnalyticsService().flush(timeout=2)
+            PKScanRunner.cleanup()
         except Exception:
             pass
         from pkscreener.globals import resetConfigToDefault
@@ -1516,6 +1518,11 @@ logFilePath = LoggerSetup.get_log_file_path
 warnAboutDependencies = DependencyChecker.warn_about_dependencies
 exitGracefully = lambda: _exit_gracefully(configManager, argParser)
 
+def signal_handler(signum, frame):
+    from pkscreener.classes.PKScanRunner import PKScanRunner
+    PKScanRunner.cleanup()
+    sys.exit(0)
+
 
 if __name__ == "__main__":
     """Main entry point when script is executed directly.
@@ -1533,6 +1540,9 @@ if __name__ == "__main__":
             pass
     
     try:
+        import signal
+        signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+        signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
         pkscreenercli()
     except KeyboardInterrupt:
         from pkscreener.globals import closeWorkersAndExit
