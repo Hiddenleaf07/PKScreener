@@ -41,11 +41,11 @@ Weekly: 5d
 
 ### Where is data stored?
 
-Data is cached in ~/.pkscreener/ directory.
+Data is cached in /results/Data/ directory from where you ran it.
 
 ### How fresh is the real-time data?
 
-During market hours, data updates every 5 minutes.
+During market hours, data updates every minute.
 
 ### Can I run scans after market hours?
 
