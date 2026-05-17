@@ -2,7 +2,9 @@
 
 ## What's New?
 1. [v0.46.20260516.911] release
-* Integration with new data provider!
+* Re-enabling monitoring dashboards
+* Fixing the backtest mode (T > B)
+* Bug fixes so that the program exits correctly
 
 ## Older Releases
 * [https://github.com/pkjmesra/PKScreener/releases] : Discarded to save on storage costs!

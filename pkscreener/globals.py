@@ -2972,10 +2972,7 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
     
     indexName = ""
     if runOptionName.startswith("P"):
-        indexName = f" for {INDICES_MAP[runOptionName.split('_')[-1]]}" if runOptionName is not None and len(runOptionName.split('_')) >= 4 and str(runOptionName.split('_')[-1]).isnumeric() and int(str(runOptionName.split('_')[-1])) <= int(list(INDICES_MAP.keys())[-2]) else ""
-    
-    # userPassedArgs.pipedtitle = f"{userPassedArgs.pipedtitle}{indexName}" if userPassedArgs.pipedtitle is not None else ""
-    
+        indexName = f" for {INDICES_MAP[runOptionName.split('_')[-1]]}" if runOptionName is not None and len(runOptionName.split('_')) >= 4 and str(runOptionName.split('_')[-1]).isnumeric() and int(str(runOptionName.split('_')[-1])) <= int(list(INDICES_MAP.keys())[-2]) else ""    
     result_count = len(screenResults) if screenResults is not None else 0
     final_count = result_count
     # BUILD THE REPORT TITLE WITH COUNTS
@@ -3661,7 +3658,9 @@ def runScanners(menuOption, items, tasks_queue, results_queue, numStocks, backte
             + colorText.END
         )
         if not userPassedArgs.download:
-            OutputControls().printOutput(colorText.WARN
+            needsCalc = userPassedArgs is not None and userPassedArgs.backtestdaysago is not None
+            pastDate_warning = f"  [+] [Quick Backtest Mode for {colorText.WARN}{PKDateUtilities.nthPastTradingDateStringFromFutureDate(int(userPassedArgs.backtestdaysago) if needsCalc else 0)}{colorText.END} ]\n" if needsCalc else ""
+            OutputControls().printOutput(f"{pastDate_warning}"+colorText.WARN
                 + f"  [+] Starting {'Stock' if menuOption not in ['C'] else 'Intraday'} {'Screening' if menuOption=='X' else ('Analysis' if menuOption == 'C' else 'Look-up' if menuOption in ['F'] else 'Backtesting.')}. Press Ctrl+C to stop!"
                 + colorText.END
             )

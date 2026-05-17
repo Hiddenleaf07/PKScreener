@@ -5478,7 +5478,7 @@ class ScreeningStatistics:
         return dataframe
     
     # Preprocess the acquired data
-    def preprocessData(self, df, daysToLookback=None):
+    def preprocessData(self, df, daysToLookback=None,recentDaysToDiscard=0):
         """
         Preprocess the acquired data by calculating technical indicators and adding them as new columns to the dataframe.
         The indicators calculated include:
@@ -5498,6 +5498,12 @@ class ScreeningStatistics:
         assert isinstance(df, pd.DataFrame)
         data = df.copy()
         data = data[::-1]  # Reverse the dataframe so that its the oldest date first for technical indicator calculations
+        # Discard rows with dates later than the calculated cutoff
+        if recentDaysToDiscard > 0:
+            cutoff_date_str = PKDateUtilities.nthPastTradingDateStringFromFutureDate(recentDaysToDiscard)
+            cutoff_date = datetime.datetime.strptime(cutoff_date_str, "%Y-%m-%d").date()
+            # Filter: keep rows where the index date <= cutoff_date
+            data = data[data.index.date <= cutoff_date]
         try:
             data = data.replace(np.inf, np.nan).replace(-np.inf, np.nan).dropna(how="all")
             if data.empty:
