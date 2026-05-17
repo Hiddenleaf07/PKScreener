@@ -1054,6 +1054,14 @@ def main(userArgs=None, optionalFinalOutcome_df=None):
     reversalOption = None
     listStockCodes = None if lastScanOutputStockCodes is None else lastScanOutputStockCodes
     lastScanOutputStockCodes = None
+    if userPassedArgs and userPassedArgs.options:
+        if "|" not in userPassedArgs.options:
+            configManager.enableAdditionalTrendFilters = not userPassedArgs.monitor
+        else:
+            configManager.enableAdditionalTrendFilters = False
+    else:
+        configManager.enableAdditionalTrendFilters = not userPassedArgs.monitor
+    configManager.setConfig(ConfigManager.parser,default=True,showFileCreatedText=False)
     if not runCleanUp and userPassedArgs is not None and not userPassedArgs.systemlaunched:
         cleanupLocalResults()
     if userPassedArgs.log:

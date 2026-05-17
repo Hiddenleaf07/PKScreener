@@ -327,8 +327,8 @@ for indexKey in level1_X_MenuDict.keys():
 
 level2_X_MenuDict = {
     "0": "Full Screening (Shows Technical Parameters without any criterion)",
-    "1": "Probable Breakouts/Breakdowns             ",
-    "2": "Today's Breakouts/Breakdowns              ",
+    "1": "Probable Breakouts                        ",
+    "2": "Today's Breakouts                         ",
     "3": "Consolidating stocks                      ",
     "4": "Lowest Volume in last N-days (Early Breakout Detection)",
     "5": "RSI screening                             ",

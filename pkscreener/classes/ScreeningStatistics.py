@@ -4020,8 +4020,8 @@ class ScreeningStatistics:
             
             screenDict["Pattern"] = saved[0] + colorText.GREEN + pattern_display + colorText.END
             saveDict["Pattern"] = saved[1] + pattern_display
-            saveDict["Pattern_Score"] = best_score
-            screenDict["Pattern_Score"] = best_score
+            saveDict["Score"] = best_score
+            screenDict["Score"] = best_score
             
             # Store additional tracking info
             if check_ema_retest:
@@ -4852,7 +4852,7 @@ class ScreeningStatistics:
         if df is not None:
             try:
                 data = df.copy()
-                data = data[::-1]
+                data = data[::-1] # Ensure oldest first
                 today_sma = pktalib.SMA(data["close"], timeperiod=50)
                 sma_minus9 = pktalib.SMA(data.head(len(data)-9)["close"], timeperiod=50)
                 sma_minus14 = pktalib.SMA(data.head(len(data)-14)["close"], timeperiod=50)
