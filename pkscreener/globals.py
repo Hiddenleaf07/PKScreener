@@ -3010,9 +3010,11 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
     reportTitle = reportTitle.replace(last_scan_name,'')
     reportTitle = f"{runOptionName} {'|' if len(str(runOptionName)) > 0 else ''}{reportTitle.strip()}{last_scan_name.strip()}"
     ConsoleUtility.PKConsoleTools.clearScreen(forceTop=True)
+    record_backtest_base_date = f"{colorText.GREEN}  [+] For {recordDate}, {colorText.END}" if (userPassedArgs.backtestdaysago and int(userPassedArgs.backtestdaysago) > 0) else f"{colorText.FAIL}  [+] {colorText.END}"
     OutputControls().printOutput(
+        record_backtest_base_date+
         colorText.FAIL
-        + f"  [+] You chose: {reportTitle}"
+        + f"You chose: {reportTitle}"
         + (f" (Piped Scan Mode) [{userPassedArgs.pipedmenus}]" if (userPassedArgs is not None and userPassedArgs.pipedmenus is not None) else "")
         + colorText.END
         , enableMultipleLineOutput=True
