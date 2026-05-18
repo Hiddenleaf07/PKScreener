@@ -1845,8 +1845,11 @@ def main(userArgs=None, optionalFinalOutcome_df=None):
                         currentTime = prevTime
                         prevTime_comps = prevTime.strftime("%Y-%m-%d %H:%M:%S").split(" ")
                         dateComp = prevTime_comps[0]
+                        running_dateComp = dateComp.split("-")[-1]
+                        dateComp = "-".join(dateComp.split("-")[:2])
+                        running_dateComp = f"{colorText.WHITE}{dateComp}{colorText.END}-{colorText.GREEN}{running_dateComp}{colorText.END}"
                         timeComp = prevTime_comps[1].split(":")
-                        prevTime = f"{colorText.FAIL}{dateComp}{colorText.END} {prevTime_comps[1]}" if direction == "DOWN" else f"{dateComp} {colorText.FAIL}{timeComp[0]}:{timeComp[1]}{colorText.END}:{timeComp[2]}"
+                        prevTime = f"{running_dateComp} {prevTime_comps[1]}" if direction == "DOWN" else f"{running_dateComp} {colorText.WHITE}{timeComp[0]}:{colorText.END}{colorText.GREEN}{timeComp[1]}{colorText.END}{colorText.WHITE}:{timeComp[2]}{colorText.END}"
                         OutputControls().moveCursorUpLines(lines=5)
                         OutputControls().printOutput(message)
                         OutputControls().printOutput(f"  [+] {colorText.WARN}Go back to: {colorText.END}{colorText.GREEN}{prevTime}{colorText.END}{colorText.WARN} ? Press <Enter> to confirm.{colorText.END}")
@@ -1857,8 +1860,11 @@ def main(userArgs=None, optionalFinalOutcome_df=None):
                         currentTime = prevTime
                         prevTime_comps = prevTime.strftime("%Y-%m-%d %H:%M:%S").split(" ")
                         dateComp = prevTime_comps[0]
+                        running_dateComp = dateComp.split("-")[-1]
+                        dateComp = "-".join(dateComp.split("-")[:2])
+                        running_dateComp = f"{colorText.WHITE}{dateComp}{colorText.END}-{colorText.GREEN}{running_dateComp}{colorText.END}"
                         timeComp = prevTime_comps[1].split(":")
-                        prevTime = f"{colorText.FAIL}{dateComp}{colorText.END} {prevTime_comps[1]}" if direction == "UP" else f"{dateComp} {colorText.FAIL}{timeComp[0]}:{timeComp[1]}{colorText.END}:{timeComp[2]}"
+                        prevTime = f"{running_dateComp} {prevTime_comps[1]}" if direction == "UP" else f"{running_dateComp} {colorText.WHITE}{timeComp[0]}:{colorText.END}{colorText.GREEN}{timeComp[1]}{colorText.END}{colorText.WHITE}:{timeComp[2]}{colorText.END}"
                         OutputControls().moveCursorUpLines(lines=5)
                         OutputControls().printOutput(message)
                         OutputControls().printOutput(f"  [+] {colorText.WARN}Go forward to: {colorText.END}{colorText.GREEN}{prevTime}{colorText.END}{colorText.WARN} ? Press <Enter> to confirm.{colorText.END}")
@@ -1880,7 +1886,7 @@ def main(userArgs=None, optionalFinalOutcome_df=None):
                         userPassedArgs.slicewindow = f"'{currentTime}'"
                     ConsoleUtility.PKConsoleTools.clearScreen(clearAlways=True,forceTop=True)
                     OutputControls().printOutput(f"{colorText.WARN}Launching into the selected time-window!{colorText.END}{colorText.GREEN} Brace yourself for the time-travel!{colorText.END}")
-                    sleep(5)
+                    sleep(2)
                     return main(userArgs=userPassedArgs, optionalFinalOutcome_df=optionalFinalOutcome_df)
             elif pinOption in ["4"]:
                 prevMonitorOption = f"{configManager.myMonitorOptions}~" if len(configManager.myMonitorOptions) > 0 else ""
@@ -2169,6 +2175,8 @@ def addOrRunPipedMenus():
         stockListParam = f" --stocklist {userPassedArgs.stocklist}" if userPassedArgs.stocklist else ""
         slicewindowParam = f" --slicewindow {userPassedArgs.slicewindow}" if userPassedArgs.slicewindow else ""
         fnameParam = f" --fname {resultsContentsEncoded}" if resultsContentsEncoded else ""
+        exit_param = " -e" #if userPassedArgs.exit else ''
+        ans_param = " -a Y" #if userPassedArgs.answerdefault else ''
         OutputControls().printOutput(f"{colorText.GREEN}Launching PKScreener with piped scanners. If it does not launch, please try with the following:{colorText.END}\n{colorText.FAIL}{launcher} -a Y -e -o {scannerOptionQuoted}{requestingUser}{enableLog}{backtestParam}{runIntradayAnalysisParam}{enableTelegramMode}{stockListParam}{slicewindowParam}{fnameParam}{colorText.END}")
         if "RUNNER" not in os.environ.keys():
             sleep(2)
@@ -2176,7 +2184,7 @@ def addOrRunPipedMenus():
         # Capture the output of the piped scan to get the final counts
         import subprocess
         result = subprocess.run(
-            f"{launcher} --systemlaunched -a Y -e -o {scannerOptionQuoted}{requestingUser}{enableLog}{backtestParam}{runIntradayAnalysisParam}{enableTelegramMode}{stockListParam}{slicewindowParam}{fnameParam}",
+            f"{launcher} --systemlaunched{ans_param}{exit_param} -o {scannerOptionQuoted}{requestingUser}{enableLog}{backtestParam}{runIntradayAnalysisParam}{enableTelegramMode}{stockListParam}{slicewindowParam}{fnameParam}",
             shell=True,
             capture_output=True,
             text=True
@@ -3072,8 +3080,7 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
         except: # pragma: no cover
             console_results = tabulated_results
             printableColumns = screenResults.columns
-        resultsContentsEncoded = saveScreenResultsEncoded(encodedText=console_results)
-    
+        resultsContentsEncoded = saveScreenResultsEncoded(encodedText=console_results)        
     if userPassedArgs.stocklist is None:
         OutputControls().printOutput(f"{console_results}\n", enableMultipleLineOutput=True)
     else:
@@ -3118,7 +3125,8 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
                 OutputControls().printOutput(f"\n  [+] {colorText.WARN}These may have been newly added in the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} and were not found in the current results at {colorText.END}{colorText.GREEN}{criteria_dateTime}{colorText.END}{colorText.WARN}):\n{colorText.END}{resultsContentsDecoded}\n", enableMultipleLineOutput=True)
         else:
             OutputControls().printOutput(f"\n  [+] {colorText.WARN}No new stock may have been added in the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}", enableMultipleLineOutput=True)
-    
+    if resultsContentsEncoded is not None:
+        userPassedArgs.fname = resultsContentsEncoded
     criteria_dateTime = None
     _, reportNameInsights = getBacktestReportFilename(
         sortKey="Date", optionalName="Insights"
