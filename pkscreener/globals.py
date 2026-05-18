@@ -2708,7 +2708,7 @@ def updateMenuChoiceHierarchy():
     
     return menuChoiceHierarchy
 
-def saveScreenResultsEncoded(encodedText: None):
+def saveScreenResultsEncoded(encodedText: None, data_date=None):
     """
     Save encoded screen results to a temporary file.
     
@@ -2728,7 +2728,8 @@ def saveScreenResultsEncoded(encodedText: None):
             f.write(encodedText)
     except: # pragma: no cover
         pass
-    return f'{uuidFileName}~{PKDateUtilities.currentDateTime().strftime("%Y-%m-%d %H:%M:%S.%f%z").replace(" ","~")}'
+    report_date = PKDateUtilities.currentDateTime().strftime("%Y-%m-%d %H:%M") if data_date is None else data_date
+    return f'{uuidFileName}~{report_date.replace(" ","~")}'
 
 def readScreenResultsDecoded(fileName=None):
     """
@@ -2938,6 +2939,7 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
     if userPassedArgs.monitor is not None:
         return
     
+    data_date = f"{saveResults['Time'][-1]}" if len(saveResults) > 0 else None
     screenResults, saveResults = findPipedScannerOptionFromStdScanOptions(screenResults, saveResults, menuOption)
     
     if userPassedArgs.stocklist is not None and saved_screen_results is not None and show_saved_diff_results:
@@ -3080,7 +3082,7 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
         except: # pragma: no cover
             console_results = tabulated_results
             printableColumns = screenResults.columns
-        resultsContentsEncoded = saveScreenResultsEncoded(encodedText=console_results)        
+        resultsContentsEncoded = saveScreenResultsEncoded(encodedText=console_results, data_date=data_date)        
     if userPassedArgs.stocklist is None:
         OutputControls().printOutput(f"{console_results}\n", enableMultipleLineOutput=True)
     else:
@@ -3101,14 +3103,14 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
                 onlyInCurrent_df, headers="keys", tablefmt=colorText.No_Pad_GridFormat,
                 maxcolwidths=Utility.tools.getMaxColumnWidths(onlyInCurrent_df)
             ).encode("utf-8").decode(STD_ENCODING)
-            OutputControls().printOutput(f"\n  [+] {colorText.WARN}These were not found in the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} (these are only in the current results at {colorText.END}{colorText.GREEN}{criteria_dateTime}{colorText.END}{colorText.WARN}):\n{colorText.END}{tabulated_onlyInCurrent_df}\n", enableMultipleLineOutput=True)
+            OutputControls().printOutput(f"\n  [+] {colorText.WARN}Following stocks were not found in the scan results run at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} (these are only in the scan results run at {colorText.END}{colorText.GREEN}{criteria_dateTime if data_date is None else data_date}{colorText.END}{colorText.WARN}):\n{colorText.END}{tabulated_onlyInCurrent_df}\n", enableMultipleLineOutput=True)
         if common_df is not None and not common_df.empty and len(common_df) > 0:
             common_df = common_df[printableColumns]
             tabulated_common_df = colorText.miniTabulator().tabulate(
                 common_df, headers="keys", tablefmt=colorText.No_Pad_GridFormat,
                 maxcolwidths=Utility.tools.getMaxColumnWidths(common_df)
             ).encode("utf-8").decode(STD_ENCODING)
-            OutputControls().printOutput(f"\n  [+] {colorText.WARN}These were common between the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} and the current results at {colorText.END}{colorText.GREEN}{criteria_dateTime}{colorText.END}{colorText.WARN}):\n{colorText.END}{tabulated_common_df}\n", enableMultipleLineOutput=True)
+            OutputControls().printOutput(f"\n  [+] {colorText.WARN}Following were common between the scan results run at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} and the scan results run at {colorText.END}{colorText.GREEN}{criteria_dateTime if data_date is None else data_date}{colorText.END}{colorText.WARN}):\n{colorText.END}{tabulated_common_df}\n", enableMultipleLineOutput=True)
         if len(addedList) > 0:
             if resultsContentsDecoded is not None:
                 reportLines = resultsContentsDecoded.splitlines(keepends=True)
@@ -3122,9 +3124,9 @@ def printNotifySaveScreenedResults(screenResults, saveResults, selectedChoice, m
                     if shouldKeep:
                         filteredReportLines.append(line)
                 resultsContentsDecoded = "".join(filteredReportLines)
-                OutputControls().printOutput(f"\n  [+] {colorText.WARN}These may have been newly added in the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} and were not found in the current results at {colorText.END}{colorText.GREEN}{criteria_dateTime}{colorText.END}{colorText.WARN}):\n{colorText.END}{resultsContentsDecoded}\n", enableMultipleLineOutput=True)
+                OutputControls().printOutput(f"\n  [+] {colorText.WARN}Following are new additions in the scan results run at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}{colorText.WARN} and were not found in the scan results run at {colorText.END}{colorText.GREEN}{criteria_dateTime}{colorText.END}{colorText.WARN}):\n{colorText.END}{resultsContentsDecoded}\n", enableMultipleLineOutput=True)
         else:
-            OutputControls().printOutput(f"\n  [+] {colorText.WARN}No new stock may have been added in the previous results at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}", enableMultipleLineOutput=True)
+            OutputControls().printOutput(f"\n  [+] {colorText.WARN}No new stock may have been added in the scan results run at {colorText.END}{colorText.FAIL}{lastReportDateTime}{colorText.END}", enableMultipleLineOutput=True)
     if resultsContentsEncoded is not None:
         userPassedArgs.fname = resultsContentsEncoded
     criteria_dateTime = None
@@ -3786,9 +3788,9 @@ def runScanners(menuOption, items, tasks_queue, results_queue, numStocks, backte
 
     if result is not None and len(result) >=1 and criteria_dateTime is None:
         if userPassedArgs is not None and userPassedArgs.backtestdaysago is not None:
-            criteria_dateTime = result[2].copy().index[-1-int(userPassedArgs.backtestdaysago)]
+            criteria_dateTime = result[2].copy().index[int(userPassedArgs.backtestdaysago)]
         else:
-            criteria_dateTime = result[2].copy().index[-1] if userPassedArgs.slicewindow is None else datetime.strptime(userPassedArgs.slicewindow.replace("'",""),"%Y-%m-%d %H:%M:%S.%f%z")
+            criteria_dateTime = result[2].copy().index[0] if userPassedArgs.slicewindow is None else datetime.strptime(userPassedArgs.slicewindow.replace("'",""),"%Y-%m-%d %H:%M:%S.%f%z")
         localtz = datetime.now(UTC).astimezone().tzinfo
         exchangeTz = PKDateUtilities.currentDateTime().astimezone().tzinfo
         if localtz != exchangeTz:

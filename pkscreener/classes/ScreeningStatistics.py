@@ -6355,7 +6355,7 @@ class ScreeningStatistics:
                         if indexDate.hour == 0 and indexDate.minute == 0:
                             indexDate = indexDate.replace(hour=15, minute=30, second=0, microsecond=0)
                         
-                        dayDate = f"{indexDate.day}/{indexDate.month} {indexDate.hour}:{indexDate.minute}"
+                        dayDate = f"{indexDate.day}/{indexDate.month}/{str(indexDate.year)[-2:]} {indexDate.hour}:{indexDate.minute}"
                         screenDict["Time"] = f"{colorText.WHITE}{dayDate}{colorText.END}"
                         saveDict["Time"] = str(dayDate)
             except KeyboardInterrupt: # pragma: no cover
