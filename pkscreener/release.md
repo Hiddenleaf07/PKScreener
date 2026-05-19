@@ -6,6 +6,7 @@
 * Fixing the backtest mode (T > B)
 * Bug fixes so that the program exits correctly
 * Re-enabling fair value and other trend calculations over the weekends or in download only mode
+* Support for intraday scans
 
 ## Older Releases
 * [https://github.com/pkjmesra/PKScreener/releases] : Discarded to save on storage costs!
