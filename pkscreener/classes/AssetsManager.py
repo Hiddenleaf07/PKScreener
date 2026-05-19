@@ -2072,16 +2072,18 @@ class PKAssetsManager:
                 listStockCodes = sorted(set(multiIndex.get_level_values(0)))
             else:
                 listStockCodes = list(stockData.keys())
-            if exchangeSuffix and any(exchangeSuffix in code for code in listStockCodes):
-                listStockCodes = [x.replace(exchangeSuffix, "") for x in listStockCodes]
+            # if exchangeSuffix and any(exchangeSuffix in code for code in listStockCodes):
+            #     listStockCodes_v1 = [x.replace(exchangeSuffix, "") for x in listStockCodes]
+            #     listStockCodes = listStockCodes_v1
             # Filter out numeric keys (instrument tokens) - they have stale data
             # and the same stocks exist with proper symbol keys with fresh data
-            listStockCodes = [code for code in listStockCodes if not str(code).isdigit()]
-            
+            listStockCodes_v2 = [code for code in listStockCodes if not str(code).isdigit()]
+            listStockCodes = listStockCodes_v2
             # Apply stockCodes filter if provided
-            if stockCodes and len(stockCodes) > 0:
-                listStockCodes = [code for code in listStockCodes if code in stockCodes]
-                default_logger().debug(f"Filtered local pickle to {len(listStockCodes)} requested stocks")
+            # if stockCodes and len(stockCodes) > 0:
+            #     listStockCodes_v3 = [code for code in listStockCodes if code in stockCodes]
+            #     listStockCodes = listStockCodes_v3
+            #     default_logger().debug(f"Filtered local pickle to {len(listStockCodes)} requested stocks")
             
             for stock in listStockCodes:
                 df_or_dict = stockData.get(stock)
