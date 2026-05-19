@@ -319,6 +319,10 @@ jobs:
       if: always() && !cancelled()
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RUNNER : "GitHub_Actions"
+        MONITORING_BOT_RUNNER: "MONITORING_BOT_RUNNER"
+        CI_PAT: ${{ secrets.CI_PAT }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "🔄 Self-triggering workflow for 24x7 continuity..."
         
