@@ -4134,6 +4134,126 @@ class ScreeningStatistics:
         existingSave = f"{existingSave}, " if (existingSave is not None and len(existingSave) > 0) else ""
         return existingScreen, existingSave
 
+    def findFibonacciRetracement(self, df, lookback_periods=None, threshold_pct=0.01,
+                             high_col='high', low_col='low', close_col='close'):
+        """
+        Compute Fibonacci retracement levels (0.236, 0.382, 0.5, 0.618, 0.786)
+        based on the highest high and lowest low in the given data.
+        
+        Returns:
+            (is_near_level, levels_dict, (nearest_level_name, nearest_price), distance_percentage)
+        """
+        if df is None or len(df) < 2:
+            return False, {}, None, 0
+
+        data = df.copy()
+        recent_data = data.head(lookback_periods) if lookback_periods and len(data) > lookback_periods else data
+
+        swing_high = recent_data[high_col].max()
+        swing_low = recent_data[low_col].min()
+        current_price = data[close_col].iloc[0]
+
+        if swing_high == swing_low:
+            return False, {}, None, 0
+
+        diff = swing_high - swing_low
+        levels = {
+            '0.236': swing_high - 0.236 * diff,
+            '0.382': swing_high - 0.382 * diff,
+            '0.5':   swing_high - 0.5 * diff,
+            '0.618': swing_high - 0.618 * diff,
+            '0.786': swing_high - 0.786 * diff,
+        }
+
+        nearest_level = None
+        min_dist = float('inf')
+        for name, price in levels.items():
+            dist = abs(current_price - price) / current_price
+            if dist < min_dist:
+                min_dist = dist
+                nearest_level = (name, price)
+
+        is_near = min_dist <= threshold_pct
+        return is_near, levels, nearest_level, min_dist * 100
+
+    def findFibonacciExtension(self, df, retracement_level=0.618, lookback_periods=None,
+                            threshold_pct=0.01, high_col='high', low_col='low', close_col='close'):
+        """
+        Identify a classic 3‑point pattern (swing high A, swing low B, retracement high C)
+        and compute Fibonacci extension levels (1.272, 1.382, 1.618, 2.0, 2.618).
+        """
+        try:
+            from scipy.signal import argrelextrema
+            import numpy as np
+        except ImportError:
+            if self.default_logger:
+                self.default_logger.warning("scipy.signal required for Fibonacci extensions")
+            return False, {}, None, 0
+
+        if df is None or len(df) < 20:
+            return False, {}, None, 0
+
+        data = df.copy()
+        # Use newest-first order; need to detect local extrema
+        highs = data[high_col].values
+        lows = data[low_col].values
+        order = max(3, len(highs) // 20)
+
+        max_idx = argrelextrema(highs, np.greater_equal, order=order)[0]
+        min_idx = argrelextrema(lows, np.less_equal, order=order)[0]
+
+        if len(max_idx) < 2 or len(min_idx) < 1:
+            return False, {}, None, 0
+
+        # Most recent swing high A
+        swing_high_idx = max_idx[-1]
+        # Swing low B after A
+        swing_low_idx = None
+        for idx in min_idx:
+            if idx > swing_high_idx:
+                swing_low_idx = idx
+                break
+        if swing_low_idx is None:
+            return False, {}, None, 0
+        # Retracement high C after B
+        retrace_high_idx = None
+        for idx in max_idx:
+            if idx > swing_low_idx:
+                retrace_high_idx = idx
+                break
+        if retrace_high_idx is None:
+            return False, {}, None, 0
+
+        A = highs[swing_high_idx]
+        B = lows[swing_low_idx]
+        C = highs[retrace_high_idx]
+
+        # Verify that C is near the expected Fibonacci retracement level
+        expected_retrace = A - retracement_level * (A - B)
+        if abs(C - expected_retrace) / expected_retrace > 0.05:
+            return False, {}, None, 0
+
+        move = C - B
+        extension_levels = {
+            '1.272': B + 1.272 * move,
+            '1.382': B + 1.382 * move,
+            '1.618': B + 1.618 * move,
+            '2.0':   B + 2.0 * move,
+            '2.618': B + 2.618 * move,
+        }
+
+        current_price = data[close_col].iloc[0]
+        nearest = None
+        min_dist = float('inf')
+        for name, price in extension_levels.items():
+            dist = abs(current_price - price) / current_price
+            if dist < min_dist:
+                min_dist = dist
+                nearest = (name, price)
+
+        is_near = min_dist <= threshold_pct
+        return is_near, extension_levels, nearest, min_dist * 100
+
     def findHigherBullishOpens(self, df):
         if df is None or len(df) == 0:
             return False
