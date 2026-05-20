@@ -819,12 +819,12 @@ class StockScreener:
                 #     hostRef.default_logger.debug(f"LTPNotInConfiguredRange:{stock}: {e}", exc_info=True)
             pass
         except KeyError as e: # pragma: no cover
-                # if userArgsLog:
-                #     hostRef.default_logger.debug(f"KeyError:{stock}: {e}", exc_info=True)
+            if userArgsLog:
+                hostRef.default_logger.debug(f"KeyError:{stock}: {e}", exc_info=True)
             pass
         except OSError as e: # pragma: no cover
-            # if userArgsLog:
-            #     hostRef.default_logger.debug(f"OSError:{stock}: {e}", exc_info=True)
+            if userArgsLog:
+                hostRef.default_logger.debug(f"OSError:{stock}: {e}", exc_info=True)
             pass
         except Exception as e:  # pragma: no cover
             if hostRef.default_logger:
